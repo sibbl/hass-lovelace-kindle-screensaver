@@ -8,6 +8,11 @@ const { CronJob } = require("cron");
 const gm = require("gm");
 
 (async () => {
+  if (config.rotation % 90 > 0) {
+    console.error("Invalid rotation value: " + config.rotation);
+    return;
+  }
+
   const outputDir = path.dirname(config.outputPath);
   await fsExtra.ensureDir(outputDir);
 
@@ -95,7 +100,19 @@ async function renderUrlToImageAsync(browser, url, path) {
       value: "light",
     },
   ]);
-  await page.setViewport(config.renderingScreenSize);
+
+  let size = {
+    ...config.renderingScreenSize,
+  };
+
+  if (config.rotation % 180 > 0) {
+    size = {
+      width: size.height,
+      height: size.width,
+    };
+  }
+
+  await page.setViewport(size);
   await page.goto(url, {
     waitUntil: ["domcontentloaded", "load", "networkidle0"],
     timeout: config.renderingTimeout,
@@ -109,7 +126,7 @@ async function renderUrlToImageAsync(browser, url, path) {
     clip: {
       x: 0,
       y: 0,
-      ...config.renderingScreenSize,
+      ...size,
     },
   });
   await page.close();
@@ -121,6 +138,7 @@ function convertImageToKindleCompatiblePngAsync(inputPath, outputPath) {
       .options({
         imageMagick: config.useImageMagick === true,
       })
+      .rotate("white", config.rotation)
       .type("GrayScale")
       .bitdepth(config.grayscaleDepth)
       .write(outputPath, (err) => {

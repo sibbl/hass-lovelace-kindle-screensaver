@@ -15,6 +15,7 @@ services:
       - GRAYSCALE_DEPTH=8
       - OUTPUT_PATH=/output/cover.png
       - LANGUAGE=en
+      - ROTATION=0
     ports:
       - 5000:5000
     volumes:
