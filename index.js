@@ -1,5 +1,6 @@
 const config = require("./config");
 const path = require("path");
+const http = require("http");
 const { promises: fs } = require("fs");
 const fsExtra = require("fs-extra");
 const puppeteer = require("puppeteer");
@@ -42,6 +43,23 @@ const gm = require("gm");
   });
 
   // renderAndConvertAsync(browser);
+
+  const httpServer = http.createServer(async (_, response) => {
+    try {
+      const data = await fs.readFile(config.outputPath);
+      response.writeHead(200);
+      response.end(data);
+    } catch (e) {
+      console.error(e);
+      response.writeHead(404);
+      response.end("Image not found");
+    }
+  });
+
+  const port = config.port || 5000;
+  httpServer.listen(port, () => {
+    console.log(`Server is running at ${port}`);
+  });
 })();
 
 async function renderAndConvertAsync(browser) {

@@ -12,4 +12,5 @@ module.exports = {
   },
   grayscaleDepth: process.env.GRAYSCALE_DEPTH || 8,
   useImageMagick: process.env.USE_IMAGE_MAGICK === "true",
+  port: process.env.PORT || 5000,
 };

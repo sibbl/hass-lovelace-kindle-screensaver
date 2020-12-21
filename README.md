@@ -28,6 +28,7 @@ You may simple set up the [sibbl/hass-lovelace-kindle-screensaver](https://hub.d
 - `RENDERING_SCREEN_HEIGHT=800` (height of your kindle screen resolution, see below)
 - `RENDERING_SCREEN_WIDTH=600` (width of your kindle screen resolution, see below)
 - `GRAYSCALE_DEPTH=8` (grayscale bit depth your kindle supports)
+- `PORT=5000` (port of server, which returns the last image)
 - `USE_IMAGE_MAGICK=false` (use ImageMagick instead of GraphicsMagick)
 
 You may also simply use the `docker-compose.yml` file inside this repository, configure everything in there and run `docker-compose up`.

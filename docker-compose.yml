@@ -14,5 +14,7 @@ services:
       - RENDERING_SCREEN_WIDTH=600
       - GRAYSCALE_DEPTH=8
       - OUTPUT_PATH=/output/cover.png
+    ports:
+      - 5000:5000
     volumes:
       - ./output/:/output
