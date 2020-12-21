@@ -4,9 +4,9 @@ This tool can be used to display a Lovelace view of your Home Assistant instance
 
 If you're looking for a way to render your own HTML, see my other project [hass-kindle-screensaver](https://github.com/sibbl/hass-kindle-screensaver) which renders a React page and can be adapted to your specific needs.
 
-## Demo
+## Sample image
 
-![Sample image](../assets/sample.png?raw=true)
+![Sample image](https://raw.githubusercontent.com/sibbl/hass-lovelace-kindle-screensaver/main/assets/sample.png)
 
 ## Features
 
