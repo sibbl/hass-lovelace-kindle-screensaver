@@ -18,16 +18,25 @@ Using the [online screensaver extension](https://www.mobileread.com/forums/showt
 
 You may simple set up the [sibbl/hass-lovelace-kindle-screensaver](https://hub.docker.com/r/sibbl/hass-lovelace-kindle-screensaver) docker container. It renders the image to a specific path which you can configure and mount accordingly.
 
+Home Assistant related stuff:
+
 - `HA_BASE_URL=https://your-hass-instance.com:8123`
 - `HA_SCREENSHOT_URL=/lovelace/screensaver?kiosk` (I recommend the [kiosk mode](https://github.com/maykar/kiosk-mode) project)
 - `HA_ACCESS_TOKEN=eyJ0...` (you need to create this token in Home Assistant first)
+- `LANGUAGE=en` (language to use in Home Assistant frontend)
 - `CRON_JOB=* * * * *` (how often to take screenshots, by default every minute)
-- `OUTPUT_PATH=./output.png` (destination of rendered image)
+
+Kindle related stuff:
+
 - `RENDERING_TIMEOUT=10000` (timeout of render process, necessary if your HASS instance might be down, in milliseconds)
 - `RENDERING_DELAY=0` (how long to wait between navigating to the page and taking the screenshot, in milliseconds)
 - `RENDERING_SCREEN_HEIGHT=800` (height of your kindle screen resolution, see below)
 - `RENDERING_SCREEN_WIDTH=600` (width of your kindle screen resolution, see below)
 - `GRAYSCALE_DEPTH=8` (grayscale bit depth your kindle supports)
+
+Advanced stuff:
+
+- `OUTPUT_PATH=./output.png` (destination of rendered image)
 - `PORT=5000` (port of server, which returns the last image)
 - `USE_IMAGE_MAGICK=false` (use ImageMagick instead of GraphicsMagick)
 

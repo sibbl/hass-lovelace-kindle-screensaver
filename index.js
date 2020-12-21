@@ -13,7 +13,11 @@ const gm = require("gm");
 
   console.log("Starting browser...");
   let browser = await puppeteer.launch({
-    args: ["--disable-dev-shm-usage", "--no-sandbox"],
+    args: [
+      "--disable-dev-shm-usage",
+      "--no-sandbox",
+      `--lang=${config.language}`,
+    ],
     // headless: false,
   });
 
@@ -23,15 +27,20 @@ const gm = require("gm");
     timeout: config.renderingTimeout,
   });
 
-  const localStorageHassTokens = JSON.stringify({
+  const hassTokens = {
     hassUrl: config.baseUrl,
     access_token: config.accessToken,
     token_type: "Bearer",
-  });
+  };
 
-  await page.evaluate((value) => {
-    localStorage.setItem("hassTokens", value);
-  }, localStorageHassTokens);
+  await page.evaluate(
+    (hassTokens, selectedLanguage) => {
+      localStorage.setItem("hassTokens", hassTokens);
+      localStorage.setItem("selectedLanguage", selectedLanguage);
+    },
+    JSON.stringify(hassTokens),
+    JSON.stringify(config.language)
+  );
 
   page.close();
 
