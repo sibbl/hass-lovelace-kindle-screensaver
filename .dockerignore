@@ -1,4 +1,5 @@
 node_modules/
+.vscode/
 assets/
 config.*.js
 docker-compose.*.yml
