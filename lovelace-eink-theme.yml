@@ -58,3 +58,9 @@ eink:
   switch-unchecked-button-color: "var(--paper-toggle-button-unchecked-button-color)"
   switch-unchecked-color: "var(--paper-toggle-button-unchecked-bar-color)"
   switch-unchecked-track-color: "var(--paper-toggle-button-unchecked-bar-color)"
+
+  ### Weather icons ###
+  weather-icon-cloud-front-color: "#aaa"
+  weather-icon-cloud-back-color: "#000"
+  weather-icon-sun-color: "#000"
+  weather-icon-rain-color: "#000"
