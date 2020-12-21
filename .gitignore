@@ -1,5 +1,4 @@
 node_modules/
-assets/
 config.*.js
 docker-compose.*.yml
 cover.png
