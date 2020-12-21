@@ -61,7 +61,7 @@ const gm = require("gm");
   const httpServer = http.createServer(async (_, response) => {
     try {
       const data = await fs.readFile(config.outputPath);
-      response.writeHead(200);
+      response.writeHead(200, { "Content-Type": "image/png" });
       response.end(data);
     } catch (e) {
       console.error(e);
