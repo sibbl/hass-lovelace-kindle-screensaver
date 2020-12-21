@@ -2,3 +2,4 @@ node_modules/
 assets/
 config.*.js
 docker-compose.*.yml
+output/
