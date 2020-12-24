@@ -23,7 +23,7 @@ const gm = require("gm");
       "--no-sandbox",
       `--lang=${config.language}`,
     ],
-    // headless: false,
+    headless: config.debug !== true,
   });
 
   console.log("Adding authentication entry to browser's local storage...");
@@ -49,14 +49,19 @@ const gm = require("gm");
 
   page.close();
 
-  console.log("Starting rendering cronjob...");
-  new CronJob({
-    cronTime: config.cronJob,
-    onTick: () => renderAndConvertAsync(browser),
-    start: true,
-  });
-
-  // renderAndConvertAsync(browser);
+  if (config.debug) {
+    console.log(
+      "Debug mode active, will only render once in non-headless model and keep page open"
+    );
+    renderAndConvertAsync(browser);
+  } else {
+    console.log("Starting rendering cronjob...");
+    new CronJob({
+      cronTime: config.cronJob,
+      onTick: () => renderAndConvertAsync(browser),
+      start: true,
+    });
+  }
 
   const httpServer = http.createServer(async (_, response) => {
     try {
@@ -93,43 +98,63 @@ async function renderAndConvertAsync(browser) {
 }
 
 async function renderUrlToImageAsync(browser, url, path) {
-  let page = await browser.newPage();
-  await page.emulateMediaFeatures([
-    {
-      name: "prefers-color-scheme",
-      value: "light",
-    },
-  ]);
+  let page;
+  try {
+    page = await browser.newPage();
+    await page.emulateMediaFeatures([
+      {
+        name: "prefers-color-scheme",
+        value: "light",
+      },
+    ]);
 
-  let size = {
-    ...config.renderingScreenSize,
-  };
-
-  if (config.rotation % 180 > 0) {
-    size = {
-      width: size.height,
-      height: size.width,
+    let size = {
+      ...config.renderingScreenSize,
     };
-  }
 
-  await page.setViewport(size);
-  await page.goto(url, {
-    waitUntil: ["domcontentloaded", "load", "networkidle0"],
-    timeout: config.renderingTimeout,
-  });
-  if (config.renderingDelay > 0) {
-    await delay(config.renderingDelay);
+    if (config.rotation % 180 > 0) {
+      size = {
+        width: size.height,
+        height: size.width,
+      };
+    }
+
+    await page.setViewport(size);
+    await page.goto(url, {
+      waitUntil: ["domcontentloaded", "load", "networkidle0"],
+      timeout: config.renderingTimeout,
+    });
+
+    await page.addStyleTag({
+      content: `
+        body {
+          width: calc(${config.renderingScreenSize.width}px / ${config.scaling});
+          height: calc(${config.renderingScreenSize.height}px / ${config.scaling});
+          transform-origin: 0 0;
+          transform: scale(${config.scaling});
+          overflow: hidden;
+        }`,
+    });
+
+    if (config.renderingDelay > 0) {
+      await delay(config.renderingDelay);
+    }
+    await page.screenshot({
+      path,
+      type: "png",
+      clip: {
+        x: 0,
+        y: 0,
+        ...size,
+      },
+    });
+  } catch (e) {
+    console.error("Failed to render", e);
+  } finally {
+    if (config.debug === false) {
+      await page.close();
+    }
   }
-  await page.screenshot({
-    path,
-    type: "png",
-    clip: {
-      x: 0,
-      y: 0,
-      ...size,
-    },
-  });
-  await page.close();
 }
 
 function convertImageToKindleCompatiblePngAsync(inputPath, outputPath) {

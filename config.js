@@ -14,5 +14,7 @@ module.exports = {
   useImageMagick: process.env.USE_IMAGE_MAGICK === "true",
   port: process.env.PORT || 5000,
   language: process.env.LANGUAGE || "en",
-  rotation: process.env.ROTATION || 0
+  rotation: process.env.ROTATION || 0,
+  scaling: process.env.SCALING || 1,
+  debug: process.env.DEBUG === "true"
 };

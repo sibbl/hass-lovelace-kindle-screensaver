@@ -16,6 +16,7 @@ services:
       - OUTPUT_PATH=/output/cover.png
       - LANGUAGE=en
       - ROTATION=0
+      - SCALING=1
     ports:
       - 5000:5000
     volumes:

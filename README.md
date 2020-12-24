@@ -33,6 +33,7 @@ Kindle related stuff:
 - `RENDERING_SCREEN_HEIGHT=800` (height of your kindle screen resolution, see below)
 - `RENDERING_SCREEN_WIDTH=600` (width of your kindle screen resolution, see below)
 - `ROTATION=0` (rotation of image in degrees, i.e. use 90 or 270 to render in landscape)
+- `SCALING=1` (scaling factor, i.e. 1.5 to zoom in or 0.75 to zoom out)
 - `GRAYSCALE_DEPTH=8` (grayscale bit depth your kindle supports)
 
 Advanced stuff:
