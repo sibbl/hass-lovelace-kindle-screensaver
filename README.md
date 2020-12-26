@@ -12,7 +12,7 @@ If you're looking for a way to render your own HTML, see my other project [hass-
 
 This tool regularly takes a screenshot of a specific page of your home assistant setup. It converts it into the PNG grayscale format which Kindles can display.
 
-Using the [online screensaver extension](https://www.mobileread.com/forums/showthread.php?t=236104) for jailbroken Kindles, this image can be regularly polled from your Kindle so you can use it as a weather station, a display for next public transport departures etc.
+Using my [own Kindle 4 setup guide](https://github.com/sibbl/hass-lovelace-kindle-4) or the [online screensaver extension](https://www.mobileread.com/forums/showthread.php?t=236104) for any jailbroken Kindle, this image can be regularly polled from your device so you can use it as a weather station, a display for next public transport departures etc.
 
 ## Usage
 
