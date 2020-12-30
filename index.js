@@ -109,7 +109,8 @@ async function renderUrlToImageAsync(browser, url, path) {
     ]);
 
     let size = {
-      ...config.renderingScreenSize,
+      width: Number(config.renderingScreenSize.width),
+      height: Number(config.renderingScreenSize.height)
     };
 
     if (config.rotation % 180 > 0) {

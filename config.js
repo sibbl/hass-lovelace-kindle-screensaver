@@ -7,8 +7,8 @@ module.exports = {
   renderingTimeout: process.env.RENDERING_TIMEOUT || 10000,
   renderingDelay: process.env.RENDERING_DELAY || 0,
   renderingScreenSize: {
-    height: process.env.RENDERING_SCREEN_SIZE_HEIGHT || 800,
-    width: process.env.RENDERING_SCREEN_SIZE_WIDTH || 600,
+    height: process.env.RENDERING_SCREEN_HEIGHT || 800,
+    width: process.env.RENDERING_SCREEN_WIDTH || 600,
   },
   grayscaleDepth: process.env.GRAYSCALE_DEPTH || 8,
   useImageMagick: process.env.USE_IMAGE_MAGICK === "true",
