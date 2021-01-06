@@ -66,6 +66,7 @@ const gm = require("gm");
   const httpServer = http.createServer(async (_, response) => {
     try {
       const data = await fs.readFile(config.outputPath);
+      console.log("Image was accessed");
       response.writeHead(200, { "Content-Type": "image/png" });
       response.end(data);
     } catch (e) {
