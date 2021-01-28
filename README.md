@@ -18,7 +18,7 @@ Using my [own Kindle 4 setup guide](https://github.com/sibbl/hass-lovelace-kindl
 
 ## Usage
 
-You may simple set up the [sibbl/hass-lovelace-kindle-screensaver](https://hub.docker.com/r/sibbl/hass-lovelace-kindle-screensaver) docker container. It renders the image to a specific path which you can configure and mount accordingly.
+You may simple set up the [sibbl/hass-lovelace-kindle-screensaver](https://hub.docker.com/r/sibbl/hass-lovelace-kindle-screensaver) docker container. The container exposes a single port (5000 by default). You can access the image by doing a simple GET request to e.g. `http://localhost:5000/` to receive the most recent image.
 
 Home Assistant related stuff:
 
