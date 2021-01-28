@@ -67,6 +67,7 @@ const gm = require("gm");
     try {
       const data = await fs.readFile(config.outputPath);
       console.log("Image was accessed");
+      response.setHeader("Content-Length", Buffer.byteLength(data));
       response.writeHead(200, { "Content-Type": "image/png" });
       response.end(data);
     } catch (e) {
