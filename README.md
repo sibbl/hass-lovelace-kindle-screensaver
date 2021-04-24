@@ -22,26 +22,30 @@ You may simple set up the [sibbl/hass-lovelace-kindle-screensaver](https://hub.d
 
 Home Assistant related stuff:
 
-- `HA_BASE_URL=https://your-hass-instance.com:8123`
-- `HA_SCREENSHOT_URL=/lovelace/screensaver?kiosk` (I recommend the [kiosk mode](https://github.com/maykar/kiosk-mode) project)
-- `HA_ACCESS_TOKEN=eyJ0...` (you need to create this token in Home Assistant first)
-- `LANGUAGE=en` (language to use in Home Assistant frontend)
-- `CRON_JOB=* * * * *` (how often to take screenshots, by default every minute)
+| Env Var                   | Sample value                          | Required | Array?\* | Description                                                                                                                                             |
+| ------------------------- | ------------------------------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HA_BASE_URL`             | `https://your-hass-instance.com:8123` | yes      | no       | Base URL of your home assistant instance                                                                                                                |
+| `HA_SCREENSHOT_URL`       | `/lovelace/screensaver?kiosk`         | yes      | yes      | Relative URL to take screenshot of (btw, the `?kiosk` parameter hides the nav bar using the [kiosk mode](https://github.com/maykar/kiosk-mode) project) |
+| `HA_ACCESS_TOKEN`         | `eyJ0...`                             | yes      | no       | Long-lived access token from Home Assistant, see [official docs](https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token)           |
+| `LANGUAGE`                | `en`                                  | no       | no       | Language to set in browser and home assistant                                                                                                           |
+| `CRON_JOB`                | `* * * * *`                           | no       | no       | How often to take screenshot                                                                                                                            |
+| `RENDERING_TIMEOUT`       | `10000`                               | no       | no       | Timeout of render process, helpful if your HASS instance might be down                                                                                  |
+| `RENDERING_DELAY`         | `0`                                   | no       | yes      | how long to wait between navigating to the page and taking the screenshot, in milliseconds                                                              |
+| `RENDERING_SCREEN_HEIGHT` | `800`                                 | no       | yes      | Height of your kindle screen resolution                                                                                                                 |
+| `RENDERING_SCREEN_WIDTH`  | `600`                                 | no       | yes      | Width of your kindle screen resolution                                                                                                                  |
+| `ROTATION`                | `0`                                   | no       | yes      | Rotation of image in degrees, e.g. use 90 or 270 to render in landscape                                                                                 |
+| `SCALING`                 | `1`                                   | no       | yes      | Scaling factor, e.g. `1.5` to zoom in or `0.75` to zoom out                                                                                             |
+| `GRAYSCALE_DEPTH`         | `8`                                   | no       | yes      | Ggrayscale bit depth your kindle supports                                                                                                               |
 
-Kindle related stuff:
-
-- `RENDERING_TIMEOUT=10000` (timeout of render process, necessary if your HASS instance might be down, in milliseconds)
-- `RENDERING_DELAY=0` (how long to wait between navigating to the page and taking the screenshot, in milliseconds)
-- `RENDERING_SCREEN_HEIGHT=800` (height of your kindle screen resolution, see below)
-- `RENDERING_SCREEN_WIDTH=600` (width of your kindle screen resolution, see below)
-- `ROTATION=0` (rotation of image in degrees, i.e. use 90 or 270 to render in landscape)
-- `SCALING=1` (scaling factor, i.e. 1.5 to zoom in or 0.75 to zoom out)
-- `GRAYSCALE_DEPTH=8` (grayscale bit depth your kindle supports)
-
-Advanced stuff:
-
-- `OUTPUT_PATH=./output.png` (destination of rendered image)
-- `PORT=5000` (port of server, which returns the last image)
-- `USE_IMAGE_MAGICK=false` (use ImageMagick instead of GraphicsMagick)
+**\* Array** means that you can set `HA_SCREENSHOT_URL_2`, `HA_SCREENSHOT_URL_3`, ... `HA_SCREENSHOT_URL_n` to render multiple pages within the same instance.
+If you use `HA_SCREENSHOT_URL_2`, you can also set `ROTATION_2=180`. If there is no `ROTATION_n` set, then `ROTATION` will be used as a fallback.
 
 You may also simply use the `docker-compose.yml` file inside this repository, configure everything in there and run `docker-compose up`.
+
+### Advanced configuration
+
+Some advanced variables for local usage which shouldn't be necessary when using Docker:
+
+- `OUTPUT_PATH=./output.png` (destination of rendered image. `OUTPUT_2`, `OUTPUT_3`, ... is also supported)
+- `PORT=5000` (port of server, which returns the last image)
+- `USE_IMAGE_MAGICK=false` (use ImageMagick instead of GraphicsMagick)

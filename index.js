@@ -8,13 +8,17 @@ const { CronJob } = require("cron");
 const gm = require("gm");
 
 (async () => {
-  if (config.rotation % 90 > 0) {
-    console.error("Invalid rotation value: " + config.rotation);
-    return;
+  if (config.pages.length === 0) {
+    return console.error("Please check your configuration");
   }
-
-  const outputDir = path.dirname(config.outputPath);
-  await fsExtra.ensureDir(outputDir);
+  for (const i in config.pages) {
+    const pageConfig = config.pages[i];
+    if (pageConfig.rotation % 90 > 0) {
+      return console.error(
+        `Invalid rotation value for entry ${i + 1}: ${pageConfig.rotation}`
+      );
+    }
+  }
 
   console.log("Starting browser...");
   let browser = await puppeteer.launch({
@@ -63,10 +67,23 @@ const gm = require("gm");
     });
   }
 
-  const httpServer = http.createServer(async (_, response) => {
+  const httpServer = http.createServer(async (request, response) => {
+    const pageNumberStr = request.url;
+    const pageNumber =
+      pageNumberStr === "/" ? 1 : parseInt(pageNumberStr.substr(1));
+    if (
+      isFinite(pageNumber) === false ||
+      pageNumber.length > config.pages.length ||
+      pageNumber < 1
+    ) {
+      console.error('Invalid page requested: ' + pageNumber);
+      response.writeHead(400);
+      response.end('Invalid page');
+      return;
+    }
     try {
-      const data = await fs.readFile(config.outputPath);
-      console.log("Image was accessed");
+      const data = await fs.readFile(config.pages[pageNumber - 1].outputPath);
+      console.log(`Image ${pageNumber} was accessed`);
       response.setHeader("Content-Length", Buffer.byteLength(data));
       response.writeHead(200, { "Content-Type": "image/png" });
       response.end(data);
@@ -84,22 +101,26 @@ const gm = require("gm");
 })();
 
 async function renderAndConvertAsync(browser) {
-  const url = `${config.baseUrl}${config.screenShotUrl}`;
+  for (const pageConfig of config.pages) {
+    const url = `${config.baseUrl}${pageConfig.screenShotUrl}`;
 
-  const outputPath = config.outputPath;
-  const tempPath = outputPath + ".temp";
+    const outputPath = pageConfig.outputPath;
+    await fsExtra.ensureDir(path.dirname(outputPath));
 
-  console.log(`Rendering ${url} to image...`);
-  await renderUrlToImageAsync(browser, url, tempPath);
+    const tempPath = outputPath + ".temp";
 
-  console.log(`Converting rendered screenshot of ${url} to grayscale png...`);
-  await convertImageToKindleCompatiblePngAsync(tempPath, outputPath);
+    console.log(`Rendering ${url} to image...`);
+    await renderUrlToImageAsync(browser, pageConfig, url, tempPath);
 
-  fs.unlink(tempPath);
-  console.log(`Finished ${url}`);
+    console.log(`Converting rendered screenshot of ${url} to grayscale png...`);
+    await convertImageToKindleCompatiblePngAsync(pageConfig, tempPath, outputPath);
+
+    fs.unlink(tempPath);
+    console.log(`Finished ${url}`);
+  }
 }
 
-async function renderUrlToImageAsync(browser, url, path) {
+async function renderUrlToImageAsync(browser, pageConfig, url, path) {
   let page;
   try {
     page = await browser.newPage();
@@ -111,11 +132,11 @@ async function renderUrlToImageAsync(browser, url, path) {
     ]);
 
     let size = {
-      width: Number(config.renderingScreenSize.width),
-      height: Number(config.renderingScreenSize.height)
+      width: Number(pageConfig.renderingScreenSize.width),
+      height: Number(pageConfig.renderingScreenSize.height),
     };
 
-    if (config.rotation % 180 > 0) {
+    if (pageConfig.rotation % 180 > 0) {
       size = {
         width: size.height,
         height: size.width,
@@ -131,16 +152,16 @@ async function renderUrlToImageAsync(browser, url, path) {
     await page.addStyleTag({
       content: `
         body {
-          width: calc(${config.renderingScreenSize.width}px / ${config.scaling});
-          height: calc(${config.renderingScreenSize.height}px / ${config.scaling});
+          width: calc(${pageConfig.renderingScreenSize.width}px / ${pageConfig.scaling});
+          height: calc(${pageConfig.renderingScreenSize.height}px / ${pageConfig.scaling});
           transform-origin: 0 0;
-          transform: scale(${config.scaling});
+          transform: scale(${pageConfig.scaling});
           overflow: hidden;
         }`,
     });
 
-    if (config.renderingDelay > 0) {
-      await delay(config.renderingDelay);
+    if (pageConfig.renderingDelay > 0) {
+      await delay(pageConfig.renderingDelay);
     }
     await page.screenshot({
       path,
@@ -160,15 +181,15 @@ async function renderUrlToImageAsync(browser, url, path) {
   }
 }
 
-function convertImageToKindleCompatiblePngAsync(inputPath, outputPath) {
+function convertImageToKindleCompatiblePngAsync(pageConfig, inputPath, outputPath) {
   return new Promise((resolve, reject) => {
     gm(inputPath)
       .options({
         imageMagick: config.useImageMagick === true,
       })
-      .rotate("white", config.rotation)
+      .rotate("white", pageConfig.rotation)
       .type("GrayScale")
-      .bitdepth(config.grayscaleDepth)
+      .bitdepth(pageConfig.grayscaleDepth)
       .write(outputPath, (err) => {
         if (err) {
           reject(err);
