@@ -26,7 +26,8 @@ const gm = require("gm");
       "--disable-dev-shm-usage",
       "--no-sandbox",
       `--lang=${config.language}`,
-    ],
+      config.ignoreCertificateErrors && "--ignore-certificate-errors",
+    ].filter((x) => x),
     headless: config.debug !== true,
   });
 
@@ -76,9 +77,9 @@ const gm = require("gm");
       pageNumber.length > config.pages.length ||
       pageNumber < 1
     ) {
-      console.error('Invalid page requested: ' + pageNumber);
+      console.error("Invalid page requested: " + pageNumber);
       response.writeHead(400);
-      response.end('Invalid page');
+      response.end("Invalid page");
       return;
     }
     try {
@@ -113,7 +114,11 @@ async function renderAndConvertAsync(browser) {
     await renderUrlToImageAsync(browser, pageConfig, url, tempPath);
 
     console.log(`Converting rendered screenshot of ${url} to grayscale png...`);
-    await convertImageToKindleCompatiblePngAsync(pageConfig, tempPath, outputPath);
+    await convertImageToKindleCompatiblePngAsync(
+      pageConfig,
+      tempPath,
+      outputPath
+    );
 
     fs.unlink(tempPath);
     console.log(`Finished ${url}`);
@@ -181,7 +186,11 @@ async function renderUrlToImageAsync(browser, pageConfig, url, path) {
   }
 }
 
-function convertImageToKindleCompatiblePngAsync(pageConfig, inputPath, outputPath) {
+function convertImageToKindleCompatiblePngAsync(
+  pageConfig,
+  inputPath,
+  outputPath
+) {
   return new Promise((resolve, reject) => {
     gm(inputPath)
       .options({

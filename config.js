@@ -42,4 +42,6 @@ module.exports = {
   renderingTimeout: process.env.RENDERING_TIMEOUT || 10000,
   language: process.env.LANGUAGE || "en",
   debug: process.env.DEBUG === "true",
+  ignoreCertificateErrors:
+    process.env.UNSAFE_IGNORE_CERTIFICATE_ERRORS === "true",
 };
