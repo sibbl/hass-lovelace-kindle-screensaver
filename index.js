@@ -7,6 +7,9 @@ const puppeteer = require("puppeteer");
 const { CronJob } = require("cron");
 const gm = require("gm");
 
+// Record of current battery level
+var battery = 0;
+
 (async () => {
   if (config.pages.length === 0) {
     return console.error("Please check your configuration");
@@ -69,7 +72,13 @@ const gm = require("gm");
   }
 
   const httpServer = http.createServer(async (request, response) => {
-    const pageNumberStr = request.url;
+    // Parse the request
+    const url = new URL(request.url, `http://${request.headers.host}`);
+    // Check the page number
+    const pageNumberStr = url.pathname;
+    // and get the battery level, if any
+    // (see https://github.com/sibbl/hass-kindle-screensaver for patch to generate it on Kindle)
+    const bttr = url.searchParams.get('battery');
     const pageNumber =
       pageNumberStr === "/" ? 1 : parseInt(pageNumberStr.substr(1));
     if (
@@ -77,6 +86,7 @@ const gm = require("gm");
       pageNumber.length > config.pages.length ||
       pageNumber < 1
     ) {
+      console.log("Invalid request: "+request.url);
       console.error("Invalid page requested: " + pageNumber);
       response.writeHead(400);
       response.end("Invalid page");
@@ -84,10 +94,21 @@ const gm = require("gm");
     }
     try {
       const data = await fs.readFile(config.pages[pageNumber - 1].outputPath);
-      console.log(`Image ${pageNumber} was accessed`);
+      // Log when the page was accessed
+      const n = new Date()
+      console.log(`${n.toISOString()}: Image ${pageNumber} was accessed`);
       response.setHeader("Content-Length", Buffer.byteLength(data));
       response.writeHead(200, { "Content-Type": "image/png" });
       response.end(data);
+      if (!isNaN(bttr)) {
+        if (bttr != battery) {
+            console.log("New battery level: "+bttr);
+        }
+        battery = bttr;
+      } else {
+        console.log("No battery level found");
+        battery = 0;
+      }
     } catch (e) {
       console.error(e);
       response.writeHead(404);
@@ -110,10 +131,10 @@ async function renderAndConvertAsync(browser) {
 
     const tempPath = outputPath + ".temp";
 
-    console.log(`Rendering ${url} to image...`);
+//    console.log(`Rendering ${url} to image...`);
     await renderUrlToImageAsync(browser, pageConfig, url, tempPath);
 
-    console.log(`Converting rendered screenshot of ${url} to grayscale png...`);
+//    console.log(`Converting rendered screenshot of ${url} to grayscale png...`);
     await convertImageToKindleCompatiblePngAsync(
       pageConfig,
       tempPath,
@@ -121,8 +142,30 @@ async function renderAndConvertAsync(browser) {
     );
 
     fs.unlink(tempPath);
-    console.log(`Finished ${url}`);
+//    console.log(`Finished ${url}`);
+      if (battery != 0  && config.batteryWebHook) {
+	  await updateBatteryLevelinHA(battery);
+      }
   }
+}
+
+async function updateBatteryLevelinHA(battery) {
+    // Let Home Assistant keep track of the battery level
+    const lv = JSON.stringify({'level': `${battery}`});
+    const ops = { method: 'POST',
+		  headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(lv) }};
+    const burl = `${config.baseUrl}/api/webhook/${config.batteryWebHook}?level=${battery}`;
+		 
+    const breq = http.request(burl, ops, (res) => {
+	if (res.statusCode != 200) {
+	    console.error(`Update ${burl} status ${res.statusCode}: ${res.statusMessage}`);
+	}
+    });
+    breq.on('error', (e) => {
+	console.error(`Update ${burl} error: ${e.message}`);
+    });
+    breq.write(lv);
+    breq.end();
 }
 
 async function renderUrlToImageAsync(browser, pageConfig, url, path) {
