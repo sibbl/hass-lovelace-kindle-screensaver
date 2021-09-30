@@ -7,8 +7,9 @@ const puppeteer = require("puppeteer");
 const { CronJob } = require("cron");
 const gm = require("gm");
 
-// Record of current battery level
+// Record of current battery level and charging state
 var battery = 0;
+var charging = 0;
 
 (async () => {
   if (config.pages.length === 0) {
@@ -79,6 +80,7 @@ var battery = 0;
     // and get the battery level, if any
     // (see https://github.com/sibbl/hass-kindle-screensaver for patch to generate it on Kindle)
     const bttr = url.searchParams.get('battery');
+    const chrg = url.searchParams.get('charging');
     const pageNumber =
       pageNumberStr === "/" ? 1 : parseInt(pageNumberStr.substr(1));
     if (
@@ -102,12 +104,20 @@ var battery = 0;
       response.end(data);
       if (!isNaN(bttr)) {
         if (bttr != battery) {
-            console.log("New battery level: "+bttr);
+            console.log("New battery level: "+bttr+" (charging: "+chrg+")");
         }
         battery = bttr;
       } else {
         console.log("No battery level found");
         battery = 0;
+      }
+      if (chrg != null) {
+	  // translate to binary
+	if (chrg == "Yes") {
+	  charging = 1;
+        } else if (chrg == "No") {
+	  charging = 0;
+        }
       }
     } catch (e) {
       console.error(e);
@@ -144,17 +154,17 @@ async function renderAndConvertAsync(browser) {
     fs.unlink(tempPath);
 //    console.log(`Finished ${url}`);
       if (battery != 0  && config.batteryWebHook) {
-	  await updateBatteryLevelinHA(battery);
+	  await updateBatteryLevelinHA(battery,charging);
       }
   }
 }
 
-async function updateBatteryLevelinHA(battery) {
+async function updateBatteryLevelinHA(battery,chrging) {
     // Let Home Assistant keep track of the battery level
-    const lv = JSON.stringify({'level': `${battery}`});
+    const lv = JSON.stringify({'level': `${battery}`, 'charging': `${chrging}`});
     const ops = { method: 'POST',
 		  headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(lv) }};
-    const burl = `${config.baseUrl}/api/webhook/${config.batteryWebHook}?level=${battery}`;
+    const burl = `${config.baseUrl}/api/webhook/${config.batteryWebHook}?level=${battery}&charging=${chrging}`;
 		 
     const breq = http.request(burl, ops, (res) => {
 	if (res.statusCode != 200) {
