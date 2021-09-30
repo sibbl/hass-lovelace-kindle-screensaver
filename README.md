@@ -60,15 +60,15 @@ Use the name of the webhook and of the `input_number` and `input_boolean` entiti
 ```
 automation:
   trigger:
-	- platform: webhook
-	   webhook_id: set_kindle_battery_level
+    - platform: webhook
+       webhook_id: set_kindle_battery_level
   action:
-	- service: input_number.set_value
-	  target:
-		entity_id: input_number.kindle_battery_level
-	  data:
-		value: "{{ trigger.query.level }}"
-	- service_template: >-
+    - service: input_number.set_value
+      target:
+        entity_id: input_number.kindle_battery_level
+      data:
+        value: "{{ trigger.query.level }}"
+    - service_template: >-
         {% if trigger.query.charging == "1" %}
         input_boolean.turn_on
         {% elif trigger.query.charging == "0" %}
@@ -76,8 +76,8 @@ automation:
         {% else %}
         input_boolean.fronk_{{ trigger.query.charging }}
         {% endif %}
-	  target:
-		entity_id: input_number.kindle_battery_charging
+      target:
+        entity_id: input_number.kindle_battery_charging
 ```
 
 #### Patch for Kinde Online Screensaver
