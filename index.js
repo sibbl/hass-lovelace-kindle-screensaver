@@ -31,7 +31,7 @@ const gm = require("gm");
     headless: config.debug !== true,
   });
 
-  console.log("Adding authentication entry to browser's local storage...");
+  console.log(`Visiting '${config.baseUrl}' to login...`);
   let page = await browser.newPage();
   await page.goto(config.baseUrl, {
     timeout: config.renderingTimeout,
@@ -43,6 +43,7 @@ const gm = require("gm");
     token_type: "Bearer",
   };
 
+  console.log("Adding authentication entry to browser's local storage...");
   await page.evaluate(
     (hassTokens, selectedLanguage) => {
       localStorage.setItem("hassTokens", hassTokens);
@@ -74,19 +75,27 @@ const gm = require("gm");
       pageNumberStr === "/" ? 1 : parseInt(pageNumberStr.substr(1));
     if (
       isFinite(pageNumber) === false ||
-      pageNumber.length > config.pages.length ||
+      pageNumber > config.pages.length ||
       pageNumber < 1
     ) {
-      console.error("Invalid page requested: " + pageNumber);
+      console.error(`Invalid request to ${pageNumberStr}`);
       response.writeHead(400);
-      response.end("Invalid page");
+      response.end("Invalid request");
       return;
     }
     try {
-      const data = await fs.readFile(config.pages[pageNumber - 1].outputPath);
       console.log(`Image ${pageNumber} was accessed`);
-      response.setHeader("Content-Length", Buffer.byteLength(data));
-      response.writeHead(200, { "Content-Type": "image/png" });
+
+      const data = await fs.readFile(config.pages[pageNumber - 1].outputPath);
+      const stat = await fs.stat(config.pages[pageNumber - 1].outputPath);
+
+      const lastModifiedTime = new Date(stat.mtime).toUTCString();
+
+      response.writeHead(200, {
+        "Content-Type": "image/png",
+        "Content-Length": Buffer.byteLength(data),
+        "Last-Modified": lastModifiedTime,
+      });
       response.end(data);
     } catch (e) {
       console.error(e);
@@ -149,9 +158,15 @@ async function renderUrlToImageAsync(browser, pageConfig, url, path) {
     }
 
     await page.setViewport(size);
+    const startTime = new Date().valueOf();
     await page.goto(url, {
       waitUntil: ["domcontentloaded", "load", "networkidle0"],
       timeout: config.renderingTimeout,
+    });
+
+    const navigateTimespan = new Date().valueOf() - startTime;
+    await page.waitForSelector("home-assistant", {
+      timeout: Math.max(config.renderingTimeout - navigateTimespan, 1000),
     });
 
     await page.addStyleTag({
@@ -166,7 +181,7 @@ async function renderUrlToImageAsync(browser, pageConfig, url, path) {
     });
 
     if (pageConfig.renderingDelay > 0) {
-      await delay(pageConfig.renderingDelay);
+      await page.waitForTimeout(pageConfig.renderingDelay);
     }
     await page.screenshot({
       path,
@@ -206,10 +221,5 @@ function convertImageToKindleCompatiblePngAsync(
           resolve();
         }
       });
-  });
-}
-function delay(time) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, time);
   });
 }
