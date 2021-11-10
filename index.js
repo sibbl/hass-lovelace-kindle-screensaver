@@ -212,7 +212,7 @@ function convertImageToKindleCompatiblePngAsync(
         imageMagick: config.useImageMagick === true,
       })
       .rotate("white", pageConfig.rotation)
-      .type("GrayScale")
+      .type(pageConfig.colorMode)
       .bitdepth(pageConfig.grayscaleDepth)
       .write(outputPath, (err) => {
         if (err) {
