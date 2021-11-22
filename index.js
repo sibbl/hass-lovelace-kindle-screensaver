@@ -61,6 +61,8 @@ const gm = require("gm");
     );
     renderAndConvertAsync(browser);
   } else {
+    console.log("Starting first render...");
+    renderAndConvertAsync(browser);
     console.log("Starting rendering cronjob...");
     new CronJob({
       cronTime: config.cronJob,
