@@ -35,7 +35,7 @@ var charging = 0;
     headless: config.debug !== true,
   });
 
-  console.log("Adding authentication entry to browser's local storage...");
+  console.log(`Visiting '${config.baseUrl}' to login...`);
   let page = await browser.newPage();
   await page.goto(config.baseUrl, {
     timeout: config.renderingTimeout,
@@ -47,6 +47,7 @@ var charging = 0;
     token_type: "Bearer",
   };
 
+  console.log("Adding authentication entry to browser's local storage...");
   await page.evaluate(
     (hassTokens, selectedLanguage) => {
       localStorage.setItem("hassTokens", hassTokens);
@@ -64,6 +65,8 @@ var charging = 0;
     );
     renderAndConvertAsync(browser);
   } else {
+    console.log("Starting first render...");
+    renderAndConvertAsync(browser);
     console.log("Starting rendering cronjob...");
     new CronJob({
       cronTime: config.cronJob,
@@ -85,22 +88,30 @@ var charging = 0;
       pageNumberStr === "/" ? 1 : parseInt(pageNumberStr.substr(1));
     if (
       isFinite(pageNumber) === false ||
-      pageNumber.length > config.pages.length ||
+      pageNumber > config.pages.length ||
       pageNumber < 1
     ) {
       console.log("Invalid request: "+request.url);
       console.error("Invalid page requested: " + pageNumber);
       response.writeHead(400);
-      response.end("Invalid page");
+      response.end("Invalid request");
       return;
     }
     try {
-      const data = await fs.readFile(config.pages[pageNumber - 1].outputPath);
       // Log when the page was accessed
       const n = new Date()
       console.log(`${n.toISOString()}: Image ${pageNumber} was accessed`);
-      response.setHeader("Content-Length", Buffer.byteLength(data));
-      response.writeHead(200, { "Content-Type": "image/png" });
+
+      const data = await fs.readFile(config.pages[pageNumber - 1].outputPath);
+      const stat = await fs.stat(config.pages[pageNumber - 1].outputPath);
+
+      const lastModifiedTime = new Date(stat.mtime).toUTCString();
+
+      response.writeHead(200, {
+        "Content-Type": "image/png",
+        "Content-Length": Buffer.byteLength(data),
+        "Last-Modified": lastModifiedTime,
+      });
       response.end(data);
       if (!isNaN(bttr)) {
         if (bttr != battery) {
@@ -202,9 +213,15 @@ async function renderUrlToImageAsync(browser, pageConfig, url, path) {
     }
 
     await page.setViewport(size);
+    const startTime = new Date().valueOf();
     await page.goto(url, {
       waitUntil: ["domcontentloaded", "load", "networkidle0"],
       timeout: config.renderingTimeout,
+    });
+
+    const navigateTimespan = new Date().valueOf() - startTime;
+    await page.waitForSelector("home-assistant", {
+      timeout: Math.max(config.renderingTimeout - navigateTimespan, 1000),
     });
 
     await page.addStyleTag({
@@ -219,7 +236,7 @@ async function renderUrlToImageAsync(browser, pageConfig, url, path) {
     });
 
     if (pageConfig.renderingDelay > 0) {
-      await delay(pageConfig.renderingDelay);
+      await page.waitForTimeout(pageConfig.renderingDelay);
     }
     await page.screenshot({
       path,
@@ -250,7 +267,7 @@ function convertImageToKindleCompatiblePngAsync(
         imageMagick: config.useImageMagick === true,
       })
       .rotate("white", pageConfig.rotation)
-      .type("GrayScale")
+      .type(pageConfig.colorMode)
       .bitdepth(pageConfig.grayscaleDepth)
       .write(outputPath, (err) => {
         if (err) {
@@ -259,10 +276,5 @@ function convertImageToKindleCompatiblePngAsync(
           resolve();
         }
       });
-  });
-}
-function delay(time) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, time);
   });
 }

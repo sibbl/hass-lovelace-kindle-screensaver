@@ -1,4 +1,4 @@
-FROM node:12-alpine
+FROM node:16-alpine3.11
 
 WORKDIR /app
 
@@ -20,7 +20,7 @@ COPY package*.json ./
 
 RUN npm ci
 
-COPY . . 
+COPY *.js ./
 
 EXPOSE 5000
 
