@@ -216,6 +216,7 @@ function convertImageToKindleCompatiblePngAsync(
       .rotate("white", pageConfig.rotation)
       .type(pageConfig.colorMode)
       .bitdepth(pageConfig.grayscaleDepth)
+      .quality(100)
       .write(outputPath, (err) => {
         if (err) {
           reject(err);
