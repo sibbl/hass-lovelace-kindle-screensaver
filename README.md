@@ -56,7 +56,7 @@ The webhook setting is to let HA keep track of the battery level of the Kindle, 
 1. Create two new helper entities in Home Assistant:
    1. a new `input_number` entity, e.g. `input_number.kindle_battery_level`
    1. a new `input_boolean` entity, e.g. `input_boolean.kindle_battery_charging`
-1. Add an automation to set the values of these entities using a webhook: [![import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fsibbl%2Fhass-lovelace-kindle-screensaver%2Fblob%2Fmain%2Fbattery_sensor_blueprint.yml)
+1. Add an automation to set the values of these entities using a webhook: [![import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fsibbl%2Fhass-lovelace-kindle-screensaver%2Fblob%2Fmain%2Fbattery_sensor_blueprint.yaml)
 1. Define this application's environment variable `HA_BATTERY_WEBHOOK` to the name of the webhook defined in the previous step. For multiple devices, `HA_BATTERY_WEBHOOK_2`, ... `HA_BATTERY_WEBHOOK_n` is supported as well.
 
 #### Patch for Kinde Online Screensaver
