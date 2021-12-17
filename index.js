@@ -8,8 +8,7 @@ const { CronJob } = require("cron");
 const gm = require("gm");
 
 // Record of current battery level and charging state
-var battery = 0;
-var charging = 0;
+const batteryStore = { level: 0, charging: 0 };
 
 (async () => {
   if (config.pages.length === 0) {
@@ -82,8 +81,8 @@ var charging = 0;
     const pageNumberStr = url.pathname;
     // and get the battery level, if any
     // (see https://github.com/sibbl/hass-kindle-screensaver for patch to generate it on Kindle)
-    const bttr = url.searchParams.get('battery');
-    const chrg = url.searchParams.get('charging');
+    const level = parseInt(url.searchParams.get('battery'), 10);
+    const charging = url.searchParams.get('charging');
     const pageNumber =
       pageNumberStr === "/" ? 1 : parseInt(pageNumberStr.substr(1));
     if (
@@ -91,8 +90,7 @@ var charging = 0;
       pageNumber > config.pages.length ||
       pageNumber < 1
     ) {
-      console.log("Invalid request: "+request.url);
-      console.error("Invalid page requested: " + pageNumber);
+      console.log("Invalid request: " + request.url + " page " + pageNumber);
       response.writeHead(400);
       response.end("Invalid request");
       return;
@@ -113,21 +111,21 @@ var charging = 0;
         "Last-Modified": lastModifiedTime,
       });
       response.end(data);
-      if (!isNaN(bttr)) {
-        if (bttr != battery) {
-            console.log("New battery level: "+bttr+" (charging: "+chrg+")");
+      if (!isNaN(level) && level >= 0) {
+        if (level !== batteryStore.level) {
+            console.log("New battery level: " + level + " (charging: " + charging + ")");
         }
-        battery = bttr;
+        batteryStore.level = level;
       } else {
-        console.log("No battery level found");
-        battery = 0;
+        console.log("No battery level found: " + level);
+        batteryStore.level = 0;
       }
-      if (chrg != null) {
+      if (charging !== null) {
 	  // translate to binary
-	if (chrg == "Yes") {
-	  charging = 1;
-        } else if (chrg == "No") {
-	  charging = 0;
+	if (charging == "Yes") {
+	  batteryStore.charging = 1;
+        } else if (charging == "No") {
+	  batteryStore.charging = 0;
         }
       }
     } catch (e) {
@@ -164,29 +162,32 @@ async function renderAndConvertAsync(browser) {
 
     fs.unlink(tempPath);
 //    console.log(`Finished ${url}`);
-      if (battery != 0  && config.batteryWebHook) {
-	  await updateBatteryLevelinHA(battery,charging);
+      if (batteryStore.level != 0  && config.batteryWebHook) {
+	  updateBatteryLevelinHA();
       }
   }
 }
 
-async function updateBatteryLevelinHA(battery,chrging) {
+function updateBatteryLevelinHA() {
     // Let Home Assistant keep track of the battery level
-    const lv = JSON.stringify({'level': `${battery}`, 'charging': `${chrging}`});
-    const ops = { method: 'POST',
-		  headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(lv) }};
-    const burl = `${config.baseUrl}/api/webhook/${config.batteryWebHook}?level=${battery}&charging=${chrging}`;
-		 
-    const breq = http.request(burl, ops, (res) => {
+    const batterystatus = JSON.stringify({'level': `${batteryStore.level}`, 
+					  'charging': `${batteryStore.charging}`});
+    const options = { method: 'POST',
+		      headers: { 'Content-Type': 'application/json', 
+				 'Content-Length': Buffer.byteLength(batterystatus) }};
+    const baseurl = `${config.baseUrl}/api/webhook/${config.batteryWebHook}?level=${batteryStore.level}&charging=${batteryStore.charging}`;
+    const url = new URL(baseurl);
+    const prot = url.protocol == 'https' ? https : http;
+    const updaterequest = prot.request(baseurl, options, (res) => {
 	if (res.statusCode != 200) {
-	    console.error(`Update ${burl} status ${res.statusCode}: ${res.statusMessage}`);
+	    console.error(`Update ${baseurl} status ${res.statusCode}: ${res.statusMessage}`);
 	}
     });
-    breq.on('error', (e) => {
-	console.error(`Update ${burl} error: ${e.message}`);
+    updaterequest.on('error', (e) => {
+	console.error(`Update ${baseurl} error: ${e.message}`);
     });
-    breq.write(lv);
-    breq.end();
+    updaterequest.write(batterystatus);
+    updaterequest.end();
 }
 
 async function renderUrlToImageAsync(browser, pageConfig, url, path) {
