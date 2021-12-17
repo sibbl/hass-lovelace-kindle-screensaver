@@ -1,0 +1,38 @@
+blueprint:
+  name: Kindle Screensaver Battery Level
+  domain: automation
+  input:
+    webhook_id:
+      name: Webhook ID
+      description: Unique and secret ID of ID to use for webhook. It's recommended to run `openssl rand -hex 16` to generate something random.
+      default: set_kindle_battery_level
+    battery_level:
+      name: Entity to save battery level in
+      description: Please create a new helper entity first.
+      selector:
+        entity:
+          domain: input_number
+    battery_charging:
+      name: Entity to save battery charging state in
+      description: Please create a new helper entity first.
+      selector:
+        entity:
+          domain: input_boolean
+
+trigger:
+  - platform: webhook
+    webhook_id: !input webhook_id
+action:
+  - service: input_number.set_value
+    target:
+      entity_id: !input battery_level
+    data:
+      value: "{{ trigger.json.batteryLevel }}"
+  - service_template: >-
+      {% if trigger.json.isCharging %}
+      input_boolean.turn_on
+      {% else %}
+      input_boolean.turn_off
+      {% endif %}
+    target:
+      entity_id: !input battery_charging
