@@ -123,7 +123,7 @@ const batteryStore = {};
           isCharging: false
         };
       }
-      if (!isNaN(batteryLevel) && batteryLevel >= 0) {
+      if (!isNaN(batteryLevel) && batteryLevel >= 0 && batteryLevel <= 100) {
         if (batteryLevel !== pageBatteryStore.batteryLevel) {
           pageBatteryStore.batteryLevel = batteryLevel;
           console.log(
