@@ -29,6 +29,7 @@ function getPagesConfig() {
       colorMode: getEnvironmentVariable("COLOR_MODE", suffix) || "GrayScale",
       rotation: getEnvironmentVariable("ROTATION", suffix) || 0,
       scaling: getEnvironmentVariable("SCALING", suffix) || 1,
+      batteryWebHook: getEnvironmentVariable("HA_BATTERY_WEBHOOK", suffix) || null,
     });
   }
   return pages;
