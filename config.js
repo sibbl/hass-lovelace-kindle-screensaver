@@ -29,6 +29,7 @@ function getPagesConfig() {
       colorMode: getEnvironmentVariable("COLOR_MODE", suffix) || "GrayScale",
       rotation: getEnvironmentVariable("ROTATION", suffix) || 0,
       scaling: getEnvironmentVariable("SCALING", suffix) || 1,
+      batteryWebHook: getEnvironmentVariable("HA_BATTERY_WEBHOOK", suffix) || null,
     });
   }
   return pages;
@@ -37,7 +38,6 @@ function getPagesConfig() {
 module.exports = {
   baseUrl: process.env.HA_BASE_URL,
   accessToken: process.env.HA_ACCESS_TOKEN,
-  batteryWebHook: process.env.HA_BATTERY_WEBHOOK,
   cronJob: process.env.CRON_JOB || "* * * * *",
   useImageMagick: process.env.USE_IMAGE_MAGICK === "true",
   pages: getPagesConfig(),
