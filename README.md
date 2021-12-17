@@ -92,7 +92,7 @@ if [ 1 -eq $CONNECTED ]; then
 -     if wget -q $IMAGE_URI -O $TMPFILE; then
 +     batteryLevel=`/usr/bin/powerd_test -s | awk -F: '/Battery Level/ {print substr($2, 0, length($2)-1) - 0}'`
 +     isCharging=`/usr/bin/powerd_test -s | awk -F: '/Charging/ {print substr($2,2,length($2))}'`
-+     if wget -q "$IMAGE_URI?batteryLevel=$batt&isCharging=$charg" -O $TMPFILE; then
++     if wget -q "$IMAGE_URI?batteryLevel=$batteryLevel&isCharging=$isCharging" -O $TMPFILE; then
         mv $TMPFILE $SCREENSAVERFILE
         logger "Screen saver image updated"
 ...
