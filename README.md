@@ -48,7 +48,7 @@ You can access these additional images by making GET Requests `http://localhost:
 
 You may also simply use the `docker-compose.yml` file inside this repository, configure everything in there and run `docker-compose up`.
 
-### Webhook example
+### How to set up the webhook
 
 The webhook setting is to let HA keep track of the battery level of the Kindle, so it can warn you about charging it. You need to do the following:
 
@@ -56,33 +56,8 @@ The webhook setting is to let HA keep track of the battery level of the Kindle, 
 1. Create two new helper entities in Home Assistant:
    1. a new `input_number` entity, e.g. `input_number.kindle_battery_level`
    1. a new `input_boolean` entity, e.g. `input_boolean.kindle_battery_charging`
-1. Add an automation to handle the webhook call; see below for an example. The name of the webhook could be an unpredictable one, e.g. the output of `openssl rand -hex 16`, or a readable, predictable (and thereby hackable) one, e.g. `set_kindle_battery_level`. See [the sparse docs](https://www.home-assistant.io/docs/automation/trigger/#webhook-trigger).
+1. Add an automation to set the values of these entities using a webhook: [![import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fsibbl%2Fhass-lovelace-kindle-screensaver%2Fblob%2Fmain%2Fbattery_sensor_blueprint.yml)
 1. Define this application's environment variable `HA_BATTERY_WEBHOOK` to the name of the webhook defined in the previous step. For multiple devices, `HA_BATTERY_WEBHOOK_2`, ... `HA_BATTERY_WEBHOOK_n` is supported as well.
-
-#### Webhook automation
-
-Use the name of the webhook and of the `input_number` and `input_boolean` entities you defined above,
-
-```
-automation:
-  trigger:
-    - platform: webhook
-       webhook_id: set_kindle_battery_level
-  action:
-    - service: input_number.set_value
-      target:
-        entity_id: input_number.kindle_battery_level
-      data:
-        value: "{{ trigger.json.batteryLevel }}"
-    - service_template: >-
-        {% if trigger.json.isCharging %}
-        input_boolean.turn_on
-        {% else %}
-        input_boolean.turn_off
-        {% endif %}
-      target:
-        entity_id: input_boolean.kindle_battery_charging
-```
 
 #### Patch for Kinde Online Screensaver
 

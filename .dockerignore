@@ -9,3 +9,4 @@ docker-compose.yml
 output/
 LICENSE
 *.md
+*.yml
