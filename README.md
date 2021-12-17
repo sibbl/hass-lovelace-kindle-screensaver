@@ -29,6 +29,7 @@ Home Assistant related stuff:
 | `HA_BASE_URL`             | `https://your-hass-instance.com:8123` | yes      | no       | Base URL of your home assistant instance                                                                                                                |
 | `HA_SCREENSHOT_URL`       | `/lovelace/screensaver?kiosk`         | yes      | yes      | Relative URL to take screenshot of (btw, the `?kiosk` parameter hides the nav bar using the [kiosk mode](https://github.com/maykar/kiosk-mode) project) |
 | `HA_ACCESS_TOKEN`         | `eyJ0...`                             | yes      | no       | Long-lived access token from Home Assistant, see [official docs](https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token)           |
+| `HA_BATTERY_WEBHOOK` | `set_kindle_battery_level` | no | no | Webhook definied in HA which receives `level`: *percentage* as JSON and query parameters
 | `LANGUAGE`                | `en`                                  | no       | no       | Language to set in browser and home assistant                                                                                                           |
 | `CRON_JOB`                | `* * * * *`                           | no       | no       | How often to take screenshot                                                                                                                            |
 | `RENDERING_TIMEOUT`       | `10000`                               | no       | no       | Timeout of render process, helpful if your HASS instance might be down                                                                                  |
@@ -46,6 +47,56 @@ If you use `HA_SCREENSHOT_URL_2`, you can also set `ROTATION_2=180`. If there is
 You can access these additional images by making GET Requests `http://localhost:5000/2`, `http://localhost:5000/3` etc.
 
 You may also simply use the `docker-compose.yml` file inside this repository, configure everything in there and run `docker-compose up`.
+
+### Webhook example
+
+The webhook setting is to let HA keep track of the battery level of the Kindle, so it can warn you about charging it. You need to do the following:
+
+1. See below (inspired by [this](https://github.com/sibbl/hass-kindle-screensaver#optional-battery-level-entity)) for a patch needed to make the Kindle Online Screensaver plugin provide the battery level.
+1. Create a new `input_number` entity in Home Assistant, e.g. `input_number.kindle_battery_level`, and a new `input_boolean` entity, e.g. `input_boolean.kindle_battery_charging`. You can use the "Helpers" on the HA Configuration page for this.
+1. Add an automation to handle the webhook call; see below for an example. The name of the webhook could be an unpredictable one, e.g. the output of `openssl rand -hex 16`, or a readable, predictable (and thereby hackable) one, e.g. `set_kindle_battery_level`. See [the sparse docs](https://www.home-assistant.io/docs/automation/trigger/#webhook-trigger).
+1. Define the environment variable `HA_BATTERY_WEBHOOK` to the name of the webhook defined in the previous step.
+
+#### Webhook automation
+Use the name of the webhook and of the `input_number` and `input_boolean` entities you defined above,
+```
+automation:
+  trigger:
+    - platform: webhook
+       webhook_id: set_kindle_battery_level
+  action:
+    - service: input_number.set_value
+      target:
+        entity_id: input_number.kindle_battery_level
+      data:
+        value: "{{ trigger.query.level }}"
+    - service_template: >-
+        {% if trigger.query.charging == "1" %}
+        input_boolean.turn_on
+        {% elif trigger.query.charging == "0" %}
+        input_boolean.turn_off
+        {% else %}
+        input_boolean.fronk_{{ trigger.query.charging }}
+        {% endif %}
+      target:
+        entity_id: input_number.kindle_battery_charging
+```
+
+#### Patch for Kinde Online Screensaver
+
+Modify the following lines in the Kindle Online Screensaver plugin's `bin/update.sh` (absolute path on device should be `/mnt/us/extensions/onlinescreensaver/bin/update.sh`):
+
+```diff
+...
+if [ 1 -eq $CONNECTED ]; then
+-     if wget -q $IMAGE_URI -O $TMPFILE; then
++     batt=`/usr/bin/powerd_test -s | awk -F: '/Battery Level/ {print substr($2, 0, length($2)-1) - 0}'`
++     charg=`/usr/bin/powerd_test -s | awk -F: '/Charging/ {print substr($2,2,length($2))}'`
++     if wget -q "$IMAGE_URI?battery=$batt&charging=$charg" -O $TMPFILE; then
+        mv $TMPFILE $SCREENSAVERFILE
+        logger "Screen saver image updated"
+...
+```
 
 ### Advanced configuration
 

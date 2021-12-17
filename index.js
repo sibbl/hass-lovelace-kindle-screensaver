@@ -7,6 +7,9 @@ const puppeteer = require("puppeteer");
 const { CronJob } = require("cron");
 const gm = require("gm");
 
+// Record of current battery level and charging state
+const batteryStore = { level: 0, charging: 0 };
+
 (async () => {
   if (config.pages.length === 0) {
     return console.error("Please check your configuration");
@@ -72,7 +75,14 @@ const gm = require("gm");
   }
 
   const httpServer = http.createServer(async (request, response) => {
-    const pageNumberStr = request.url;
+    // Parse the request
+    const url = new URL(request.url, `http://${request.headers.host}`);
+    // Check the page number
+    const pageNumberStr = url.pathname;
+    // and get the battery level, if any
+    // (see https://github.com/sibbl/hass-kindle-screensaver for patch to generate it on Kindle)
+    const level = parseInt(url.searchParams.get('battery'), 10);
+    const charging = url.searchParams.get('charging');
     const pageNumber =
       pageNumberStr === "/" ? 1 : parseInt(pageNumberStr.substr(1));
     if (
@@ -80,13 +90,15 @@ const gm = require("gm");
       pageNumber > config.pages.length ||
       pageNumber < 1
     ) {
-      console.error(`Invalid request to ${pageNumberStr}`);
+      console.log("Invalid request: " + request.url + " page " + pageNumber);
       response.writeHead(400);
       response.end("Invalid request");
       return;
     }
     try {
-      console.log(`Image ${pageNumber} was accessed`);
+      // Log when the page was accessed
+      const n = new Date()
+      console.log(`${n.toISOString()}: Image ${pageNumber} was accessed`);
 
       const data = await fs.readFile(config.pages[pageNumber - 1].outputPath);
       const stat = await fs.stat(config.pages[pageNumber - 1].outputPath);
@@ -99,6 +111,23 @@ const gm = require("gm");
         "Last-Modified": lastModifiedTime,
       });
       response.end(data);
+      if (!isNaN(level) && level >= 0) {
+        if (level !== batteryStore.level) {
+            console.log("New battery level: " + level + " (charging: " + charging + ")");
+        }
+        batteryStore.level = level;
+      } else {
+        console.log("No battery level found: " + level);
+        batteryStore.level = 0;
+      }
+      if (charging !== null) {
+	  // translate to binary
+	if (charging == "Yes") {
+	  batteryStore.charging = 1;
+        } else if (charging == "No") {
+	  batteryStore.charging = 0;
+        }
+      }
     } catch (e) {
       console.error(e);
       response.writeHead(404);
@@ -121,10 +150,10 @@ async function renderAndConvertAsync(browser) {
 
     const tempPath = outputPath + ".temp";
 
-    console.log(`Rendering ${url} to image...`);
+//    console.log(`Rendering ${url} to image...`);
     await renderUrlToImageAsync(browser, pageConfig, url, tempPath);
 
-    console.log(`Converting rendered screenshot of ${url} to grayscale png...`);
+//    console.log(`Converting rendered screenshot of ${url} to grayscale png...`);
     await convertImageToKindleCompatiblePngAsync(
       pageConfig,
       tempPath,
@@ -132,8 +161,33 @@ async function renderAndConvertAsync(browser) {
     );
 
     fs.unlink(tempPath);
-    console.log(`Finished ${url}`);
+//    console.log(`Finished ${url}`);
+      if (batteryStore.level != 0  && config.batteryWebHook) {
+	  updateBatteryLevelinHA();
+      }
   }
+}
+
+function updateBatteryLevelinHA() {
+    // Let Home Assistant keep track of the battery level
+    const batterystatus = JSON.stringify({'level': `${batteryStore.level}`, 
+					  'charging': `${batteryStore.charging}`});
+    const options = { method: 'POST',
+		      headers: { 'Content-Type': 'application/json', 
+				 'Content-Length': Buffer.byteLength(batterystatus) }};
+    const baseurl = `${config.baseUrl}/api/webhook/${config.batteryWebHook}?level=${batteryStore.level}&charging=${batteryStore.charging}`;
+    const url = new URL(baseurl);
+    const prot = url.protocol == 'https' ? https : http;
+    const updaterequest = prot.request(baseurl, options, (res) => {
+	if (res.statusCode != 200) {
+	    console.error(`Update ${baseurl} status ${res.statusCode}: ${res.statusMessage}`);
+	}
+    });
+    updaterequest.on('error', (e) => {
+	console.error(`Update ${baseurl} error: ${e.message}`);
+    });
+    updaterequest.write(batterystatus);
+    updaterequest.end();
 }
 
 async function renderUrlToImageAsync(browser, pageConfig, url, path) {
