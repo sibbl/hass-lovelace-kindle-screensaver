@@ -131,11 +131,13 @@ const batteryStore = {};
           );
         }
 
-        if (isCharging === "Yes" && pageBatteryStore.isCharging !== true) {
+        if (
+          (isCharging === "Yes" || isCharging === "1") &&
+          pageBatteryStore.isCharging !== true) {
           pageBatteryStore.isCharging = true;
           console.log(`Battery started charging for page ${pageNumber}`);
         } else if (
-          isCharging === "No" &&
+          (isCharging === "No" || isCharging === "0") &&
           pageBatteryStore.isCharging !== false
         ) {
           console.log(`Battery stopped charging for page ${pageNumber}`);
