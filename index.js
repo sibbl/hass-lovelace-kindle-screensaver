@@ -303,6 +303,7 @@ function convertImageToKindleCompatiblePngAsync(
       .dither(pageConfig.dither)
       .rotate("white", pageConfig.rotation)
       .type(pageConfig.colorMode)
+      .level(pageConfig.blackLevel, pageConfig.whiteLevel)
       .bitdepth(pageConfig.grayscaleDepth)
       .quality(100)
       .write(outputPath, (err) => {
