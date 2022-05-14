@@ -25,6 +25,8 @@ function getPagesConfig() {
         width: getEnvironmentVariable("RENDERING_SCREEN_WIDTH", suffix) || 600,
       },
       grayscaleDepth: getEnvironmentVariable("GRAYSCALE_DEPTH", suffix) || 8,
+      blackLevel: getEnvironmentVariable("BLACK_LEVEL", suffix) || "0%",
+      whiteLevel: getEnvironmentVariable("WHITE_LEVEL", suffix) || "100%",
       dither: getEnvironmentVariable("DITHER", suffix) || false,
       colorMode: getEnvironmentVariable("COLOR_MODE", suffix) || "GrayScale",
       rotation: getEnvironmentVariable("ROTATION", suffix) || 0,
