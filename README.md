@@ -59,7 +59,7 @@ The webhook setting is to let HA keep track of the battery level of the Kindle, 
 1. Add an automation to set the values of these entities using a webhook: [![import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fsibbl%2Fhass-lovelace-kindle-screensaver%2Fblob%2Fmain%2Fbattery_sensor_blueprint.yaml)
 1. Define this application's environment variable `HA_BATTERY_WEBHOOK` to the name of the webhook defined in the previous step. For multiple devices, `HA_BATTERY_WEBHOOK_2`, ... `HA_BATTERY_WEBHOOK_n` is supported as well.
 
-#### Patch for Kinde Online Screensaver
+#### Patch for [Kindle Online Screensaver extension](https://www.mobileread.com/forums/showthread.php?t=236104)
 
 Modify the following lines in the Kindle Online Screensaver plugin's `bin/update.sh` (absolute path on device should be `/mnt/us/extensions/onlinescreensaver/bin/update.sh`):
 
@@ -72,6 +72,17 @@ if [ 1 -eq $CONNECTED ]; then
 +     if wget -q "$IMAGE_URI?batteryLevel=$batteryLevel&isCharging=$isCharging" -O $TMPFILE; then
         mv $TMPFILE $SCREENSAVERFILE
         logger "Screen saver image updated"
+...
+```
+
+#### Patch for [Hass Kindle 4 Lovelace plugin](https://github.com/sibbl/hass-lovelace-kindle-4/)
+
+Modify the following lines in the Kindle Online Screensaver plugin's [`script.sh`](https://github.com/sibbl/hass-lovelace-kindle-4/blob/main/extensions/homeassistant/script.sh#L133) (absolute path on device should be `/mnt/us/extensions/homeassistant/script.sh`):
+
+```diff
+...
+- DOWNLOADRESULT=$(wget -q "$IMAGE_URI" -O $TMPFILE)
++ DOWNLOADRESULT=$(wget -q "$IMAGE_URI?batteryLevel=$CHECKBATTERY&isCharging=$IS_CHARGING" -O $TMPFILE)
 ...
 ```
 
