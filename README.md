@@ -61,7 +61,7 @@ The webhook setting is to let HA keep track of the battery level of the Kindle, 
 
 #### Patch for [Kindle Online Screensaver extension](https://www.mobileread.com/forums/showthread.php?t=236104)
 
-Modify the following lines in the Kindle Online Screensaver plugin's `bin/update.sh` (absolute path on device should be `/mnt/us/extensions/onlinescreensaver/bin/update.sh`):
+Modify the following lines in the Kindle Online Screensaver extension's `bin/update.sh` (absolute path on device should be `/mnt/us/extensions/onlinescreensaver/bin/update.sh`):
 
 ```diff
 ...
@@ -75,9 +75,9 @@ if [ 1 -eq $CONNECTED ]; then
 ...
 ```
 
-#### Patch for [Hass Kindle 4 Lovelace plugin](https://github.com/sibbl/hass-lovelace-kindle-4/)
+#### Patch for [HASS Lovelace Kindle 4 extension](https://github.com/sibbl/hass-lovelace-kindle-4/)
 
-Modify the following lines in the Kindle Online Screensaver plugin's [`script.sh`](https://github.com/sibbl/hass-lovelace-kindle-4/blob/main/extensions/homeassistant/script.sh#L133) (absolute path on device should be `/mnt/us/extensions/homeassistant/script.sh`):
+Modify the following lines in the HASS Lovelace Kindle 4 extension's [`script.sh`](https://github.com/sibbl/hass-lovelace-kindle-4/blob/main/extensions/homeassistant/script.sh#L133) (absolute path on device should be `/mnt/us/extensions/homeassistant/script.sh`):
 
 ```diff
 ...
