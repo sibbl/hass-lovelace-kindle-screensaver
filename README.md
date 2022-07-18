@@ -41,7 +41,7 @@ Home Assistant related stuff:
 | `RENDERING_SCREEN_WIDTH`  | `600`                                 | no       | yes      | Width of your kindle screen resolution                                                                                                                  |
 | `ROTATION`                | `0`                                   | no       | yes      | Rotation of image in degrees, e.g. use 90 or 270 to render in landscape                                                                                 |
 | `SCALING`                 | `1`                                   | no       | yes      | Scaling factor, e.g. `1.5` to zoom in or `0.75` to zoom out                                                                                             |
-| `GRAYSCALE_DEPTH`         | `8`                                   | no       | yes      | Ggrayscale bit depth your kindle supports                                                                                                               |
+| `GRAYSCALE_DEPTH`         | `8`                                   | no       | yes      | Grayscale bit depth your kindle supports                                                                                                               |
 | `COLOR_MODE`              | `GrayScale`                           | no       | yes      | ColorMode to use, ex: `GrayScale`, or `TrueColor`.                                                                                                      |
 | `DITHER`                  | `false`                               | no       | yes      | Apply a dither to the images.                                                                                                                           |
 
