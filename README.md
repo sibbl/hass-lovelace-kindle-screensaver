@@ -20,7 +20,10 @@ Using my [own Kindle 4 setup guide](https://github.com/sibbl/hass-lovelace-kindl
 
 You may simple set up the [sibbl/hass-lovelace-kindle-screensaver](https://hub.docker.com/r/sibbl/hass-lovelace-kindle-screensaver) docker container. The container exposes a single port (5000 by default).
 
-You can access the image by doing a simple GET request to e.g. `http://localhost:5000/` to receive the most recent image.
+I recommend simply using the `docker-compose.yml` file inside this repository, configure everything in there and run `docker-compose up -d` within the file's directory. This will pull the docker image, create the container with all environment variables from the file and run it in detached mode (using `-d`, so it continues running even when you exit your shell/bash/ssh connection).
+Additionally, you can then later use `docker-compose pull && docker-compose up -d` to update the image in case you want to update it.
+
+You can then access the image by doing a simple GET request to e.g. `http://localhost:5000/` to receive the most recent image (might take up to 60s after the first run).
 
 Home Assistant related stuff:
 
@@ -45,8 +48,6 @@ Home Assistant related stuff:
 **\* Array** means that you can set `HA_SCREENSHOT_URL_2`, `HA_SCREENSHOT_URL_3`, ... `HA_SCREENSHOT_URL_n` to render multiple pages within the same instance.
 If you use `HA_SCREENSHOT_URL_2`, you can also set `ROTATION_2=180`. If there is no `ROTATION_n` set, then `ROTATION` will be used as a fallback.
 You can access these additional images by making GET Requests `http://localhost:5000/2`, `http://localhost:5000/3` etc.
-
-You may also simply use the `docker-compose.yml` file inside this repository, configure everything in there and run `docker-compose up`.
 
 ### How to set up the webhook
 
