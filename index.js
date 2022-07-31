@@ -207,7 +207,8 @@ function sendBatteryLevelToHomeAssistant(
     headers: {
       "Content-Type": "application/json",
       "Content-Length": Buffer.byteLength(batteryStatus)
-    }
+    },
+    rejectUnauthorized: !config.ignoreCertificateErrors
   };
   const url = `${config.baseUrl}/api/webhook/${batteryWebHook}`;
   const httpLib = url.toLowerCase().startsWith("https") ? https : http;
