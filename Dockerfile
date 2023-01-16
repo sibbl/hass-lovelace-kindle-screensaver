@@ -1,11 +1,12 @@
-FROM node:16-alpine3.11
+FROM node:16-alpine3.17
 
 WORKDIR /app
 
 RUN apk add --no-cache \
     chromium \
     nss \
-    freetype \
+    freetype \    
+    font-noto-emoji \
     freetype-dev \
     harfbuzz \
     ca-certificates \
@@ -17,6 +18,7 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     USE_IMAGE_MAGICK=true
 
 COPY package*.json ./
+COPY local.conf /etc/fonts/local.conf
 
 RUN npm ci
 
