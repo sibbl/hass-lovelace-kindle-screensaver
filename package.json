@@ -6,12 +6,12 @@
   "scripts": {
     "start": "node index.js"
   },
-  "author": "sibbl",
+  "author": "topahl",
   "license": "MIT",
   "dependencies": {
-    "cron": "^1.8.2",
-    "fs-extra": "^10.0.0",
-    "gm": "^1.23.1",
-    "puppeteer": "^11.0.0"
+    "cron": "^2.3.0",
+    "fs-extra": "^11.1.1",
+    "gm": "^1.25.0",
+    "puppeteer": "^19.7.5"
   }
 }
