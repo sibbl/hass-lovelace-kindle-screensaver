@@ -168,6 +168,7 @@ async function renderAndConvertAsync(browser) {
     await fsExtra.ensureDir(path.dirname(outputPath));
 
     const tempPath = outputPath + ".temp";
+    const tempPath2 = outputPath + ".temp2";
 
     console.log(`Rendering ${url} to image...`);
     await renderUrlToImageAsync(browser, pageConfig, url, tempPath);
@@ -176,10 +177,14 @@ async function renderAndConvertAsync(browser) {
     await convertImageToKindleCompatiblePngAsync(
       pageConfig,
       tempPath,
+      tempPath2
+    );
+
+    await convertPngToKindleRawAsync(
+      tempPath2,
       outputPath
     );
 
-    fs.unlink(tempPath);
     console.log(`Finished ${url}`);
 
     if (
@@ -317,4 +322,21 @@ function convertImageToKindleCompatiblePngAsync(
         }
       });
   });
+}
+
+function convertPngToKindleRawAsync(
+  inputPath,
+  outputPath){
+    const command = `ffmpeg -v quiet -vcodec png -i ${inputPath} -vcodec rawvideo -f rawvideo -pix_fmt rgb565 ${outputPath}`;
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+          console.log(`error: ${error.message}`);
+          return;
+      }
+      if (stderr) {
+          console.log(`stderr: ${stderr}`);
+          return;
+      }
+      console.log(`stdout: ${stdout}`);
+    })
 }
