@@ -1,0 +1,53 @@
+name: Lovelace Kindle Screensaver
+version: 1.0.4
+slug: kindle-screensaver
+description: This tool can be used to display a Lovelace view of your Home Assistant instance on a jailbroken Kindle device. It regularly takes a screenshot which can be polled and used as a screensaver image of the online screensaver plugin.
+startup: application
+boot: auto
+arch:
+  - aarch64
+  - amd64
+  # -  - See github/ci.yml
+url: 'https://github.com/J3n50m4t/hass-lovelace-kindle-screensaver'
+image: 'j3n50m4t/hass-lovelace-kindle-screensaver-ha-addon-{arch}'
+webui: 'http://[HOST]:[PORT:5000]'
+ingress: true
+ingress_port: 5000
+ports:
+  5000/tcp: 5000
+ports_description:
+  5000/tcp: 'Node Webserver hosting rendered image'
+map:
+  - media:rw
+watchdog: 'http://[HOST]:[PORT:5000]/'
+init: false
+options:
+  HA_BASE_URL: 'https://your-path-to-home-assistant:8123'
+  HA_SCREENSHOT_URL: '/lovelace/0'
+  HA_ACCESS_TOKEN: ''
+  LANGUAGE: 'en'
+  CRON_JOB: '* * * * *'
+  RENDERING_TIMEOUT: '60000'
+  RENDERING_DELAY: '0'
+  RENDERING_SCREEN_HEIGHT: '800'
+  RENDERING_SCREEN_WIDTH: '600'
+  ROTATION: '0'
+  SCALING: '1'
+  GRAYSCALE_DEPTH: '8'
+  COLOR_MODE: 'GrayScale'
+schema:
+  HA_BASE_URL: "url"
+  HA_SCREENSHOT_URL: "str"
+  HA_ACCESS_TOKEN: "password"
+  LANGUAGE: "str"
+  CRON_JOB: "str"
+  RENDERING_TIMEOUT: "int"
+  RENDERING_DELAY: "int"
+  RENDERING_SCREEN_HEIGHT: "int"
+  RENDERING_SCREEN_WIDTH: "int"
+  ROTATION: "int"
+  SCALING: "int"
+  GRAYSCALE_DEPTH: "int"
+  COLOR_MODE: "list(GrayScale|TrueColor)?"
+environment:
+  output_path: "/output/cover.png"

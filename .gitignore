@@ -4,3 +4,5 @@ config.*.js
 docker-compose.*.yml
 cover.png
 output/
+.devcontainer/
+.DS_Store
