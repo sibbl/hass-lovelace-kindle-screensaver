@@ -8,8 +8,8 @@ arch:
   - aarch64
   - amd64
   # -  - See github/ci.yml
-url: 'https://github.com/J3n50m4t/hass-lovelace-kindle-screensaver'
-image: 'j3n50m4t/hass-lovelace-kindle-screensaver-ha-addon-{arch}'
+url: 'https://github.com/sibbl/hass-lovelace-kindle-screensaver'
+image: 'sibbl/hass-lovelace-kindle-screensaver-ha-addon-{arch}'
 webui: 'http://[HOST]:[PORT:5000]'
 ingress: true
 ingress_port: 5000
