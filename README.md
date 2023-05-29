@@ -20,6 +20,8 @@ Using my [own Kindle 4 setup guide](https://github.com/sibbl/hass-lovelace-kindl
 
 You may simple set up the [sibbl/hass-lovelace-kindle-screensaver](https://hub.docker.com/r/sibbl/hass-lovelace-kindle-screensaver) docker container. The container exposes a single port (5000 by default).
 
+Another way is to use Hassio Addons where you have to add this repository or click [here](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fsibbl%2Fhass-lovelace-kindle-screensaver). Then Reload and you should see options to the Lovelace Kindle Screensaver Addon
+
 I recommend simply using the `docker-compose.yml` file inside this repository, configure everything in there and run `docker-compose up -d` within the file's directory. This will pull the docker image, create the container with all environment variables from the file and run it in detached mode (using `-d`, so it continues running even when you exit your shell/bash/ssh connection).
 Additionally, you can then later use `docker-compose pull && docker-compose up -d` to update the image in case you want to update it.
 
