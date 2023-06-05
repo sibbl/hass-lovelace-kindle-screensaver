@@ -6,6 +6,11 @@ blueprint:
       name: Webhook ID
       description: Unique and secret ID of ID to use for webhook. It's recommended to run `openssl rand -hex 16` to generate something random.
       default: set_kindle_battery_level
+    local_only:
+      name: Only allow connections from the local network
+      selector:
+        boolean:
+      default: true
     battery_level:
       name: Entity to save battery level in
       description: Please create a new helper entity first.
@@ -22,6 +27,7 @@ blueprint:
 trigger:
   - platform: webhook
     webhook_id: !input webhook_id
+    local_only: !input local_only
 action:
   - service: input_number.set_value
     target:
