@@ -15,6 +15,7 @@ export ROTATION=$(bashio::config 'ROTATION')
 export SCALING=$(bashio::config 'SCALING')
 export GRAYSCALE_DEPTH=$(bashio::config 'GRAYSCALE_DEPTH')
 export COLOR_MODE=$(bashio::config 'COLOR_MODE')
+export HA_BATTERY_WEBHOOK=$(bashio::config 'HA_BATTERY_WEBHOOK')
 
 bashio::log.info "Using base_url: ${HA_BASE_URL}"
 
