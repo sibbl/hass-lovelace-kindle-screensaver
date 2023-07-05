@@ -16,7 +16,8 @@ export SCALING=$(bashio::config 'SCALING')
 export GRAYSCALE_DEPTH=$(bashio::config 'GRAYSCALE_DEPTH')
 export COLOR_MODE=$(bashio::config 'COLOR_MODE')
 export HA_BATTERY_WEBHOOK=$(bashio::config 'HA_BATTERY_WEBHOOK')
-
+export UNSAFE_IGNORE_CERTIFICATE_ERRORS=$(bashio::config 'UNSAFE_IGNORE_CERTIFICATE_ERRORS')
+export USE_IMAGE_MAGICK=$(bashio::config 'USE_IMAGE_MAGICK')
 bashio::log.info "Using base_url: ${HA_BASE_URL}"
 
 cd /app
