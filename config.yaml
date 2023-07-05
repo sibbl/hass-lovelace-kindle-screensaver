@@ -53,3 +53,5 @@ schema:
   HA_BATTERY_WEBHOOK: "str"
 environment:
   output_path: "/output/cover.png"
+  unsafe_ignore_certificate_errors: "true"
+  use_image_magick: "false"
