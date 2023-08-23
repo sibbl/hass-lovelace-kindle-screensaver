@@ -32,8 +32,8 @@ jobs:
           platforms: linux/amd64,linux/arm/v7,linux/arm64
           push: true
           tags: |
-            topahl/hass-lovelace-kobo-screensaver:${{ env.PACKAGE_VERSION }},
-            topahl/hass-lovelace-kobo-screensaver:latest
+            ghcr.io/topahl/hass-lovelace-kobo-screensaver:${{ env.PACKAGE_VERSION }},
+            ghcr.io/topahl/hass-lovelace-kobo-screensaver:latest
       - name: Tag git commit
         uses: pkgdeps/git-tag-action@v2
         with:
