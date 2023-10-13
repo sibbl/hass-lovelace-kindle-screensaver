@@ -66,7 +66,7 @@ const batteryStore = {};
     renderAndConvertAsync(browser);
   } else {
     console.log("Starting first render...");
-    renderAndConvertAsync(browser);
+    await renderAndConvertAsync(browser);
     console.log("Starting rendering cronjob...");
     new CronJob({
       cronTime: config.cronJob,
