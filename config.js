@@ -46,6 +46,7 @@ module.exports = {
   pages: getPagesConfig(),
   port: process.env.PORT || 5000,
   renderingTimeout: process.env.RENDERING_TIMEOUT || 10000,
+  browserLaunchTimeout: process.env.BROWSER_LAUNCH_TIMEOUT || 30000,
   language: process.env.LANGUAGE || "en",
   debug: process.env.DEBUG === "true",
   ignoreCertificateErrors:
