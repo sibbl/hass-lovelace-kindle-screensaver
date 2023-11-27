@@ -32,6 +32,7 @@ const batteryStore = {};
       `--lang=${config.language}`,
       config.ignoreCertificateErrors && "--ignore-certificate-errors"
     ].filter((x) => x),
+    timeout: config.browserLaunchTimeout,
     headless: config.debug !== true
   });
 
