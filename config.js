@@ -30,6 +30,7 @@ function getPagesConfig() {
       whiteLevel: getEnvironmentVariable("WHITE_LEVEL", suffix) || "100%",
       dither: getEnvironmentVariable("DITHER", suffix) || false,
       colorMode: getEnvironmentVariable("COLOR_MODE", suffix) || "GrayScale",
+      prefersColorScheme: getEnvironmentVariable("PREFERS_COLOR_SCHEME", suffix) || "light",
       rotation: getEnvironmentVariable("ROTATION", suffix) || 0,
       scaling: getEnvironmentVariable("SCALING", suffix) || 1,
       batteryWebHook: getEnvironmentVariable("HA_BATTERY_WEBHOOK", suffix) || null,
