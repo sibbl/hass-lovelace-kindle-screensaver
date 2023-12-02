@@ -36,6 +36,7 @@ options:
   SCALING: '1'
   GRAYSCALE_DEPTH: '8'
   COLOR_MODE: 'GrayScale'
+  PREFERS_COLOR_SCHEME: 'light'
   HA_BATTERY_WEBHOOK: ''
 schema:
   HA_BASE_URL: "url"
@@ -52,6 +53,7 @@ schema:
   SCALING: "int"
   GRAYSCALE_DEPTH: "int"
   COLOR_MODE: "list(GrayScale|TrueColor)?"
+  PREFERS_COLOR_SCHEME: "list(light|dark)?"
   HA_BATTERY_WEBHOOK: "str"
 environment:
   output_path: "/output/cover.png"

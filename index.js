@@ -234,7 +234,7 @@ async function renderUrlToImageAsync(browser, pageConfig, url, path) {
     await page.emulateMediaFeatures([
       {
         name: "prefers-color-scheme",
-        value: "light"
+        value: `${pageConfig.prefersColorScheme}`
       }
     ]);
 
