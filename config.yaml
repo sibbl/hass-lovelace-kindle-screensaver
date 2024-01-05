@@ -50,7 +50,7 @@ schema:
   RENDERING_SCREEN_WIDTH: "int"
   BROWSER_LAUNCH_TIMEOUT: "int"
   ROTATION: "int"
-  SCALING: "int"
+  SCALING: "float"
   GRAYSCALE_DEPTH: "int"
   COLOR_MODE: "list(GrayScale|TrueColor)?"
   PREFERS_COLOR_SCHEME: "list(light|dark)?"
