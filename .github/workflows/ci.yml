@@ -55,30 +55,23 @@ jobs:
             sibbl/hass-lovelace-kindle-screensaver-ha-addon-aarch64:${{ env.PACKAGE_VERSION }},
             sibbl/hass-lovelace-kindle-screensaver-ha-addon-aarch64:latest
 
+      - name: Build and push HA_Addon ARMv7 to Docker
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile.HA_ADDON
+          build-args: BUILD_FROM=homeassistant/armv7-base:latest
+          platforms: linux/armv7
+          push: true
+          tags: |
+            sibbl/hass-lovelace-kindle-screensaver-ha-addon-armv7:${{ env.PACKAGE_VERSION }},
+            sibbl/hass-lovelace-kindle-screensaver-ha-addon-armv7:latest
 
-      # Currently fails with. I'dont know why, as build womm. Someone? 
-      #8 0.148 fetch https://dl-cdn.alpinelinux.org/alpine/v3.17/main/armhf/APKINDEX.tar.gz
-      #8 1.271 fetch https://dl-cdn.alpinelinux.org/alpine/v3.17/community/armhf/APKINDEX.tar.gz
-      #8 2.193 ERROR: unable to select packages:
-      #8 2.282   chromium (no such package):
-      #8 2.282     required by: world[chromium]  
-      # - name: Build and push HA_Addon ARMv7 to Docker
-      #   uses: docker/build-push-action@v2
-      #   with:
-      #     context: .
-      #     file: ./Dockerfile.HA_ADDON
-      #     build-args: BUILD_FROM=homeassistant/armhf-base:latest
-      #     platforms: linux/armhf
-      #     push: true
-      #     tags: |
-      #       sibbl/hass-lovelace-kindle-screensaver-ha-addon-armv7:${{ env.PACKAGE_VERSION }},
-      #       sibbl/hass-lovelace-kindle-screensaver-ha-addon-armv7:latest
-
-      # - name: Tag git commit
-      #   uses: pkgdeps/git-tag-action@v2
-      #   with:
-      #     github_token: ${{ secrets.GITHUB_TOKEN }}
-      #     github_repo: ${{ github.repository }}
-      #     version: ${{ env.PACKAGE_VERSION }}
-      #     git_commit_sha: ${{ github.sha }}
-      #     git_tag_prefix: "v"
+      - name: Tag git commit
+        uses: pkgdeps/git-tag-action@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_repo: ${{ github.repository }}
+          version: ${{ env.PACKAGE_VERSION }}
+          git_commit_sha: ${{ github.sha }}
+          git_tag_prefix: "v"
