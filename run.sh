@@ -1,6 +1,6 @@
 #!/usr/bin/with-contenv bashio
 
-bashio::log.info "Starting npm server..."
+bashio::log.info "Loading config..."
 
 export HA_BASE_URL="$(bashio::config 'HA_BASE_URL')"
 export HA_SCREENSHOT_URL=$(bashio::config 'HA_SCREENSHOT_URL')
@@ -17,7 +17,19 @@ export GRAYSCALE_DEPTH=$(bashio::config 'GRAYSCALE_DEPTH')
 export COLOR_MODE=$(bashio::config 'COLOR_MODE')
 export HA_BATTERY_WEBHOOK=$(bashio::config 'HA_BATTERY_WEBHOOK')
 
-bashio::log.info "Using base_url: ${HA_BASE_URL}"
+bashio::log.info "Loading additional environment variables..."
+
+# Load custom environment variables
+for var in $(bashio::config 'ADDITIONAL_ENV_VARS|keys'); do
+    name=$(bashio::config "ADDITIONAL_ENV_VARS[${var}].name")
+    value=$(bashio::config "ADDITIONAL_ENV_VARS[${var}].value")
+    bashio::log.info "Setting ${name} to ${value}"
+    export "${name}=${value}"
+done
+
+bashio::log.info "Using HA_BASE_URL: ${HA_BASE_URL}"
+
+bashio::log.info "Starting server..."
 
 cd /app
 exec /usr/bin/npm start

@@ -38,6 +38,7 @@ options:
   COLOR_MODE: 'GrayScale'
   PREFERS_COLOR_SCHEME: 'light'
   HA_BATTERY_WEBHOOK: ''
+  ADDITIONAL_ENV_VARS: []
 schema:
   HA_BASE_URL: "url"
   HA_SCREENSHOT_URL: "str"
@@ -55,5 +56,7 @@ schema:
   COLOR_MODE: "list(GrayScale|TrueColor)?"
   PREFERS_COLOR_SCHEME: "list(light|dark)?"
   HA_BATTERY_WEBHOOK: "str"
+  ADDITIONAL_ENV_VARS:
+    - str
 environment:
   output_path: "/output/cover.png"
