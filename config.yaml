@@ -57,7 +57,7 @@ schema:
   PREFERS_COLOR_SCHEME: "list(light|dark)?"
   HA_BATTERY_WEBHOOK: "str"
   ADDITIONAL_ENV_VARS:
-    - name: match(^[A-Z0-9_]+\=.+$)
+    - name: match(^[A-Z0-9_]+$)
       value: str
 environment:
   output_path: "/output/cover.png"
