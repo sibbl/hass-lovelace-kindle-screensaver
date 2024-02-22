@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - hass-addon-add-additional-env-vars
 
 jobs:
   multi:
