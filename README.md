@@ -54,6 +54,19 @@ Home Assistant related stuff:
 If you use `HA_SCREENSHOT_URL_2`, you can also set `ROTATION_2=180`. If there is no `ROTATION_n` set, then `ROTATION` will be used as a fallback.
 You can access these additional images by making GET Requests `http://localhost:5000/2`, `http://localhost:5000/3` etc.
 
+To make us of the array feature in the Home Assistant Add-On, you may use `ADDITIONAL_ENV_VARS`. It expects a format like this to set any additional environment variable:
+
+```yaml
+- name: "HA_SCREENSHOT_URL_2"
+  value: "/lovelace/second-page"
+- name: "ROTATION_2"
+  value: "180"
+- name: "HA_SCREENSHOT_URL_3"
+  value: "/lovelace/third-page"
+```
+
+To avoid problems, please ensure that the name only contains upper case letters, numbers and underscores. The value field must be a string, so it's better to always put your value (especially numbers) into a `"string"` .
+
 ### How to set up the webhook
 
 The webhook setting is to let HA keep track of the battery level of the Kindle, so it can warn you about charging it. You need to do the following:
