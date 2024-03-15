@@ -105,13 +105,14 @@ const batteryStore = {};
       const pageIndex = pageNumber - 1;
       const configPage = config.pages[pageIndex];
 
-      const data = await fs.readFile(configPage.outputPath);
-      const stat = await fs.stat(configPage.outputPath);
+      const outputPathWithExtension = configPage.outputPath + "." + configPage.imageFormat
+      const data = await fs.readFile(outputPathWithExtension);
+      const stat = await fs.stat(outputPathWithExtension);
 
       const lastModifiedTime = new Date(stat.mtime).toUTCString();
 
       response.writeHead(200, {
-        "Content-Type": "image/png",
+        "Content-Type": "image/" + configPage.imageFormat,
         "Content-Length": Buffer.byteLength(data),
         "Last-Modified": lastModifiedTime
       });
@@ -165,7 +166,7 @@ async function renderAndConvertAsync(browser) {
 
     const url = `${config.baseUrl}${pageConfig.screenShotUrl}`;
 
-    const outputPath = pageConfig.outputPath;
+    const outputPath = pageConfig.outputPath + "." + pageConfig.imageFormat;
     await fsExtra.ensureDir(path.dirname(outputPath));
 
     const tempPath = outputPath + ".temp";
@@ -173,7 +174,7 @@ async function renderAndConvertAsync(browser) {
     console.log(`Rendering ${url} to image...`);
     await renderUrlToImageAsync(browser, pageConfig, url, tempPath);
 
-    console.log(`Converting rendered screenshot of ${url} to grayscale png...`);
+    console.log(`Converting rendered screenshot of ${url} to grayscale...`);
     await convertImageToKindleCompatiblePngAsync(
       pageConfig,
       tempPath,
@@ -278,7 +279,7 @@ async function renderUrlToImageAsync(browser, pageConfig, url, path) {
     }
     await page.screenshot({
       path,
-      type: "png",
+      type: pageConfig.imageFormat,
       clip: {
         x: 0,
         y: 0,

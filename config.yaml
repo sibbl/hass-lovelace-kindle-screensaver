@@ -1,5 +1,5 @@
 name: Lovelace Kindle Screensaver
-version: 1.0.8
+version: 1.0.9
 slug: kindle-screensaver
 description: This tool can be used to display a Lovelace view of your Home Assistant instance on a jailbroken Kindle device. It regularly takes a screenshot which can be polled and used as a screensaver image of the online screensaver plugin.
 startup: application
@@ -35,6 +35,7 @@ options:
   ROTATION: '0'
   SCALING: '1'
   GRAYSCALE_DEPTH: '8'
+  IMAGE_FORMAT: 'png'
   COLOR_MODE: 'GrayScale'
   REMOVE_GAMMA: true
   PREFERS_COLOR_SCHEME: 'light'
@@ -54,6 +55,7 @@ schema:
   ROTATION: "int?"
   SCALING: "float?"
   GRAYSCALE_DEPTH: "int?"
+  IMAGE_FORMAT: "list(png|jpeg)?"
   COLOR_MODE: "list(GrayScale|TrueColor)?"
   REMOVE_GAMMA: "bool?"
   PREFERS_COLOR_SCHEME: "list(light|dark)?"
@@ -62,4 +64,4 @@ schema:
     - name: match(^[A-Z0-9_]+$)
       value: str
 environment:
-  output_path: "/output/cover.png"
+  output_path: "/output/cover"

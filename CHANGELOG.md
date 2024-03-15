@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.9
+
+### Added
+
+* Add jpeg support via new `IMAGE_TYPE` config env variable (thanks to [@nbarrientos](https://github.com/nbarrientos))
+
 ## 1.0.8
 
 ### Fixed
