@@ -13,10 +13,11 @@ function getPagesConfig() {
     if (!screenShotUrl) return pages;
     pages.push({
       screenShotUrl,
+      imageFormat: getEnvironmentVariable("IMAGE_FORMAT", suffix) || "png",
       outputPath: getEnvironmentVariable(
         "OUTPUT_PATH",
         suffix,
-        `output/cover${suffix}.png`
+        `output/cover${suffix}`
       ),
       renderingDelay: getEnvironmentVariable("RENDERING_DELAY", suffix) || 0,
       renderingScreenSize: {
