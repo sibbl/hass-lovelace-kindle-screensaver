@@ -65,12 +65,3 @@ jobs:
           tags: |
             sibbl/hass-lovelace-kindle-screensaver-ha-addon-armv7:${{ env.PACKAGE_VERSION }},
             sibbl/hass-lovelace-kindle-screensaver-ha-addon-armv7:latest
-
-      - name: Tag git commit
-        uses: pkgdeps/git-tag-action@v2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          github_repo: ${{ github.repository }}
-          version: ${{ env.PACKAGE_VERSION }}
-          git_commit_sha: ${{ github.sha }}
-          git_tag_prefix: "v"
