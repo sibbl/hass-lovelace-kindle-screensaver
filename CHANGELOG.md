@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.10
+
+### Fixed
+
+* Fix REMOVE_GAMMA and DITHER always being enabled for Home Assistant Add-On
+
 ## 1.0.9
 
 ### Added
