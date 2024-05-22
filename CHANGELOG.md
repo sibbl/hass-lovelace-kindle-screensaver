@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.11
+
+### Fixed
+
+* Avoid viewport resize causing another rerender when taking screenshot (thanks to [@beeh5](https://github.com/beeh5))
+
 ## 1.0.10
 
 ### Fixed
