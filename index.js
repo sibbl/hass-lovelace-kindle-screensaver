@@ -32,6 +32,7 @@ const batteryStore = {};
       `--lang=${config.language}`,
       config.ignoreCertificateErrors && "--ignore-certificate-errors"
     ].filter((x) => x),
+    defaultViewport: null,
     timeout: config.browserLaunchTimeout,
     headless: config.debug !== true
   });
@@ -280,6 +281,7 @@ async function renderUrlToImageAsync(browser, pageConfig, url, path) {
     await page.screenshot({
       path,
       type: pageConfig.imageFormat,
+      captureBeyondViewport: false,
       clip: {
         x: 0,
         y: 0,
