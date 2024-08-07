@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.12
+
+## Fixed
+
+* Fix scaling bug by using zoom css property instead of transforms (thanks to [@avhm](https://github.com/avhm))
+
 ## 1.0.11
 
 ### Fixed
