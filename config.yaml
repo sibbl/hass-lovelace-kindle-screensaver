@@ -40,6 +40,8 @@ options:
   REMOVE_GAMMA: true
   PREFERS_COLOR_SCHEME: 'light'
   HA_BATTERY_WEBHOOK: ''
+  SATURATION: 1
+  CONTRAST: 1
   ADDITIONAL_ENV_VARS: []
 schema:
   HA_BASE_URL: "url"
@@ -60,6 +62,8 @@ schema:
   REMOVE_GAMMA: "bool?"
   PREFERS_COLOR_SCHEME: "list(light|dark)?"
   HA_BATTERY_WEBHOOK: "str?"
+  SATURATION: "int?"
+  CONTRAST: "int?"
   ADDITIONAL_ENV_VARS:
     - name: match(^[A-Z0-9_]+$)
       value: str
