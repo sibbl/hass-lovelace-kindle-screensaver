@@ -284,7 +284,7 @@ async function renderUrlToImageAsync(browser, pageConfig, url, path) {
         y: 0,
         ...size
       },
-      quality: 100
+      ...(pageConfig.imageFormat=="jpeg") && {quality: 100}
     });
   } catch (e) {
     console.error("Failed to render", e);
