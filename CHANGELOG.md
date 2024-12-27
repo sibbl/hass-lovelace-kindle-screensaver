@@ -1,8 +1,14 @@
 # Changelog
 
+## 1.0.13
+
+### Added
+
+* Allow configuring contrast, saturation, black level and white level. JPEG quality is set to 100% (thanks to [@harry48225](https://github.com/harry48225))
+
 ## 1.0.12
 
-## Fixed
+### Fixed
 
 * Fix scaling bug by using zoom css property instead of transforms (thanks to [@avhm](https://github.com/avhm))
 
