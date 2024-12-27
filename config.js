@@ -35,6 +35,8 @@ function getPagesConfig() {
       rotation: getEnvironmentVariable("ROTATION", suffix) || 0,
       scaling: getEnvironmentVariable("SCALING", suffix) || 1,
       batteryWebHook: getEnvironmentVariable("HA_BATTERY_WEBHOOK", suffix) || null,
+      saturation: getEnvironmentVariable("SATURATION", suffix) || 1,
+      contrast: getEnvironmentVariable("CONTRAST", suffix) || 1,
     });
   }
   return pages;

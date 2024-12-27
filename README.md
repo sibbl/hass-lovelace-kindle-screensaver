@@ -50,6 +50,10 @@ Home Assistant related stuff:
 | `IMAGE_FORMAT`            | `png`                                 | no       | no       | Format for the generated images. Acceptable values are `png` or `jpeg`.                                                                                                                              |
 | `DITHER`                  | `false`                               | no       | yes      | Apply a dither to the images.                                                                                                                                                                        |
 | `REMOVE_GAMMA`            | `true`                                | no       | no       | Remove gamma correction from image. Computer images are normally gamma corrected since monitors expect gamma corrected data, however some E-Ink displays expect images not to have gamma correction. |
+| SATURATION              | 2                                   | no       | no       | Saturation level multiplier, e.g. 2 doubles the saturation |
+| CONTRAST                | 2                                   | no       | no       | Contrast level multiplier, e.g. 2 doubles the contrast |
+| BLACK_LEVEL             | 30%                                 | no       | no       | Black point as percentage of MaxRGB, i.e. crushes blacks below specified level |
+| WHITE_LEVEL             | 90%                                 | no       | no       | White point as percentage of MaxRGB, i.e. crushes whites above specified level |
 
 **\* Array** means that you can set `HA_SCREENSHOT_URL_2`, `HA_SCREENSHOT_URL_3`, ... `HA_SCREENSHOT_URL_n` to render multiple pages within the same instance.
 If you use `HA_SCREENSHOT_URL_2`, you can also set `ROTATION_2=180`. If there is no `ROTATION_n` set, then `ROTATION` will be used as a fallback.

@@ -283,7 +283,8 @@ async function renderUrlToImageAsync(browser, pageConfig, url, path) {
         x: 0,
         y: 0,
         ...size
-      }
+      },
+      ...(pageConfig.imageFormat=="jpeg") && {quality: 100}
     });
   } catch (e) {
     console.error("Failed to render", e);
@@ -304,7 +305,9 @@ function convertImageToKindleCompatiblePngAsync(
       .options({
         imageMagick: config.useImageMagick === true
       })
-      .gamma(pageConfig.removeGamma ? 1.0/2.2 : 1.0)
+      .gamma(pageConfig.removeGamma ? 1.0 / 2.2 : 1.0)
+      .modulate(100, 100 * pageConfig.saturation)
+      .contrast(pageConfig.contrast)
       .dither(pageConfig.dither)
       .rotate("white", pageConfig.rotation)
       .type(pageConfig.colorMode)
