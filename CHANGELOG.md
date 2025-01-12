@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.14
+
+### Added
+
+* Bmp file format support for image generation (thanks to [@macmacs](https://github.com/macmacs))
+
 ## 1.0.13
 
 ### Added
