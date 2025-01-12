@@ -277,14 +277,13 @@ async function renderUrlToImageAsync(browser, pageConfig, url, path) {
     }
     await page.screenshot({
       path,
-      type: pageConfig.imageFormat,
+      type: 'png', // Always use PNG for screenshot
       captureBeyondViewport: false,
       clip: {
         x: 0,
         y: 0,
         ...size
-      },
-      ...(pageConfig.imageFormat=="jpeg") && {quality: 100}
+      }
     });
   } catch (e) {
     console.error("Failed to render", e);
@@ -301,7 +300,7 @@ function convertImageToKindleCompatiblePngAsync(
   outputPath
 ) {
   return new Promise((resolve, reject) => {
-    gm(inputPath)
+    let gmInstance = gm(inputPath)
       .options({
         imageMagick: config.useImageMagick === true
       })
@@ -312,14 +311,19 @@ function convertImageToKindleCompatiblePngAsync(
       .rotate("white", pageConfig.rotation)
       .type(pageConfig.colorMode)
       .level(pageConfig.blackLevel, pageConfig.whiteLevel)
-      .bitdepth(pageConfig.grayscaleDepth)
-      .quality(100)
-      .write(outputPath, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
+      .bitdepth(pageConfig.grayscaleDepth);
+
+    // For BMP format, we don't set quality since it's not applicable
+    if (pageConfig.imageFormat !== 'bmp') {
+      gmInstance = gmInstance.quality(100);
+    }
+    
+    gmInstance.write(outputPath, (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
   });
 }
