@@ -57,7 +57,7 @@ schema:
   ROTATION: "int?"
   SCALING: "float?"
   GRAYSCALE_DEPTH: "int?"
-  IMAGE_FORMAT: "list(png|jpeg)?"
+  IMAGE_FORMAT: "list(png|jpeg|bmp)?"
   COLOR_MODE: "list(GrayScale|TrueColor)?"
   REMOVE_GAMMA: "bool?"
   PREFERS_COLOR_SCHEME: "list(light|dark)?"
