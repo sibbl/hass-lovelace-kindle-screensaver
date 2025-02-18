@@ -174,7 +174,10 @@ async function renderAndConvertAsync(browser) {
 
     console.log(`Rendering ${url} to image...`);
     await renderUrlToImageAsync(browser, pageConfig, url, tempPath);
-
+    if (!(await fsExtra.pathExists(tempPath))) {
+      console.error(`Screenshot fehlt: ${tempPath}`);
+      return;
+    } 
     console.log(`Converting rendered screenshot of ${url} to grayscale...`);
     await convertImageToKindleCompatiblePngAsync(
       pageConfig,
