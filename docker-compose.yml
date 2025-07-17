@@ -4,12 +4,13 @@ services:
   app:
     image: sibbl/hass-lovelace-kindle-screensaver:latest
     environment:
-      - HA_BASE_URL=https://your-path-to-home-assistant:8123
+      - HA_BASE_URL=https://your-path-to-home-assistant:8123  # Edit this
       - HA_SCREENSHOT_URL=/lovelace?kiosk
-      - HA_ACCESS_TOKEN=eyJ0...
+      - HA_ACCESS_TOKEN=eyJ0...  # Edit this
+      - TZ=America/Los_Angeles # Edit this
       - CRON_JOB=* * * * *
       - RENDERING_TIMEOUT=30000
-      - RENDERING_DELAY=0
+      - RENDERING_DELAY=500
       - RENDERING_SCREEN_HEIGHT=800
       - RENDERING_SCREEN_WIDTH=600
       - GRAYSCALE_DEPTH=8
