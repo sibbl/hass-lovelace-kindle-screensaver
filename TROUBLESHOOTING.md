@@ -15,13 +15,13 @@ This means the application cannot resolve the hostname in your `HA_BASE_URL` con
 
 This error typically occurs in the following scenarios:
 
-1. **Using the default placeholder URL**: The addon's default configuration uses `https://your-path-to-home-assistant:8123` as a placeholder value. This is not a real domain name and cannot be resolved by DNS.
+1. **Using the default placeholder URL**: The add-on's default configuration uses `https://your-path-to-home-assistant:8123` as a placeholder value. This is not a real domain name and cannot be resolved by DNS.
 
 2. **Typo in the hostname**: You may have misspelled your Home Assistant hostname or domain name.
 
 3. **Network/DNS issues**: Your network or DNS server cannot resolve the hostname you've configured.
 
-4. **Home Assistant not accessible**: Your Home Assistant instance might not be reachable from where this addon is running.
+4. **Home Assistant not accessible**: Your Home Assistant instance might not be reachable from where this add-on is running.
 
 ### How to fix it
 
@@ -44,12 +44,12 @@ HA_BASE_URL: "https://my-home.duckdns.org:8123"
 ```
 
 **For Home Assistant supervised installations:**
-- If running as an addon, you can use: `http://supervisor/core`
+- If running as an add-on, you can use: `http://supervisor/core`
 - This uses Home Assistant's internal networking
 
 #### Step 2: Verify your Home Assistant is accessible
 
-Test your Home Assistant URL by opening it in a web browser. If you can't access it in a browser, this addon won't be able to access it either.
+Test your Home Assistant URL by opening it in a web browser. If you can't access it in a browser, this add-on won't be able to access it either.
 
 #### Step 3: Configure HA_ACCESS_TOKEN
 
@@ -62,15 +62,15 @@ You also need a long-lived access token:
 5. Give it a name (e.g., "Kindle Screensaver")
 6. Copy the token and set it as `HA_ACCESS_TOKEN` in your configuration
 
-#### Step 4: Restart the addon
+#### Step 4: Restart the add-on
 
-After updating your configuration, restart the addon for the changes to take effect.
+After updating your configuration, restart the add-on for the changes to take effect.
 
 ### Common Configuration Examples
 
-#### Running as Home Assistant Addon
+#### Running as Home Assistant Add-on
 
-When running as a Home Assistant addon, use the internal URL:
+When running as a Home Assistant add-on, use the internal URL:
 ```yaml
 HA_BASE_URL: "http://supervisor/core"
 HA_SCREENSHOT_URL: "/lovelace/0"
@@ -97,8 +97,8 @@ HA_ACCESS_TOKEN: "your-long-lived-access-token-here"
 
 If you continue to experience issues after following these steps:
 
-1. Check the addon logs for more specific error messages
-2. Verify network connectivity between the addon and Home Assistant
+1. Check the add-on logs for more specific error messages
+2. Verify network connectivity between the add-on and Home Assistant
 3. Ensure your Home Assistant instance is running and accessible
 4. Check if you're using HTTPS with self-signed certificates (you may need to set `UNSAFE_IGNORE_CERTIFICATE_ERRORS: true`)
 

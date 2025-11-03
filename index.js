@@ -17,7 +17,7 @@ const batteryStore = {};
   }
   
   // Validate HA_BASE_URL is not the default placeholder
-  if (!config.baseUrl) {
+  if (!config.baseUrl || config.baseUrl.trim() === '') {
     console.error("ERROR: HA_BASE_URL is not configured.");
     console.error("Please set HA_BASE_URL to your Home Assistant instance URL.");
     return console.error("Example: https://homeassistant.local:8123 or http://192.168.1.100:8123");
@@ -28,8 +28,7 @@ const batteryStore = {};
     'your-path-to-home-assistant',
     'your-hass-instance',
     'your-home-assistant',
-    'example.com',
-    'localhost.local'
+    'example.com'
   ];
   
   const baseUrlLower = config.baseUrl.toLowerCase();
