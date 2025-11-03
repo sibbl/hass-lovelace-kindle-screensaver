@@ -15,6 +15,45 @@ const batteryStore = {};
   if (config.pages.length === 0) {
     return console.error("Please check your configuration");
   }
+  
+  // Validate HA_BASE_URL is not the default placeholder
+  if (!config.baseUrl) {
+    console.error("ERROR: HA_BASE_URL is not configured.");
+    console.error("Please set HA_BASE_URL to your Home Assistant instance URL.");
+    return console.error("Example: https://homeassistant.local:8123 or http://192.168.1.100:8123");
+  }
+  
+  // Check for common placeholder values
+  const placeholderPatterns = [
+    'your-path-to-home-assistant',
+    'your-hass-instance',
+    'your-home-assistant',
+    'example.com',
+    'localhost.local'
+  ];
+  
+  const baseUrlLower = config.baseUrl.toLowerCase();
+  for (const pattern of placeholderPatterns) {
+    if (baseUrlLower.includes(pattern)) {
+      console.error(`ERROR: HA_BASE_URL contains placeholder text: "${config.baseUrl}"`);
+      console.error("Please update HA_BASE_URL to your actual Home Assistant instance URL.");
+      console.error("Examples:");
+      console.error("  - https://homeassistant.local:8123");
+      console.error("  - http://192.168.1.100:8123");
+      return console.error("  - https://my-home.duckdns.org:8123");
+    }
+  }
+  
+  // Validate HA_ACCESS_TOKEN is provided
+  if (!config.accessToken || config.accessToken.trim() === '') {
+    console.error("ERROR: HA_ACCESS_TOKEN is not configured.");
+    console.error("Please create a long-lived access token in Home Assistant:");
+    console.error("  1. Go to your Home Assistant profile");
+    console.error("  2. Scroll down to 'Long-Lived Access Tokens'");
+    console.error("  3. Click 'Create Token'");
+    return console.error("  4. Copy the token and set it as HA_ACCESS_TOKEN");
+  }
+  
   for (const i in config.pages) {
     const pageConfig = config.pages[i];
     if (pageConfig.rotation % 90 > 0) {
