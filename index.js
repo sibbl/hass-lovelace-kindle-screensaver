@@ -37,11 +37,8 @@ const batteryStore = {};
     headless: config.debug !== true
   });
 
-  console.log(`Visiting '${config.baseUrl}' to login...`);
+  console.log(`creating blank page`);
   let page = await browser.newPage();
-  await page.goto(config.baseUrl, {
-    timeout: config.renderingTimeout
-  });
 
   const hassTokens = {
     hassUrl: config.baseUrl,
@@ -58,6 +55,11 @@ const batteryStore = {};
     JSON.stringify(hassTokens),
     JSON.stringify(config.language)
   );
+
+  console.log(`Visiting '${config.baseUrl}' ...`);
+  await page.goto(config.baseUrl, {
+    timeout: config.renderingTimeout
+  });
 
   page.close();
 
