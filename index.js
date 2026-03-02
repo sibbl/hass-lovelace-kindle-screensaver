@@ -240,7 +240,6 @@ async function launchBrowserAndLogin() {
       "--disable-dev-shm-usage",
       "--no-sandbox",
       "--disable-gpu",
-      "--disable-software-rasterizer",
       "--disable-background-timer-throttling",
       "--disable-backgrounding-occluded-windows",
       "--disable-renderer-backgrounding",
@@ -248,7 +247,6 @@ async function launchBrowserAndLogin() {
       "--disable-ipc-flooding-protection",
       "--no-first-run",
       "--no-default-browser-check",
-      "--no-zygote",
       `--lang=${config.language}`,
       config.ignoreCertificateErrors && "--ignore-certificate-errors"
     ].filter((x) => x),
@@ -412,10 +410,11 @@ async function renderUrlToImageAsync(browser, pageConfig, url, path) {
     page.on('close', () => console.warn('[DIAG] Page was closed'));
     page.on('requestfailed', request => console.warn(`[DIAG] Request failed: ${request.url()} - ${request.failure()?.errorText}`));
 
-    // Log /tmp usage before navigation
+    // Log /tmp and memory usage before navigation
     try {
       const { execSync } = require('child_process');
-      console.log(`[DIAG] /tmp usage before navigation:\n${execSync('df -h /tmp 2>/dev/null && du -sh /tmp/* 2>/dev/null || true').toString()}`);
+      console.log(`[DIAG] /tmp before nav:\n${execSync('df -h /tmp 2>/dev/null || true').toString()}`);
+      console.log(`[DIAG] Memory:\n${execSync('free -m 2>/dev/null || cat /proc/meminfo 2>/dev/null | head -5 || true').toString()}`);
     } catch (_) {}
 
     // Add console logging in debug mode
