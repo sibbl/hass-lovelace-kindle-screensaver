@@ -239,10 +239,6 @@ async function launchBrowserAndLogin() {
     args: [
       "--disable-dev-shm-usage",
       "--no-sandbox",
-      "--disable-gpu",
-      "--disable-software-rasterizer",
-      "--use-gl=disabled",
-      "--disable-gpu-compositing",
       "--disable-background-timer-throttling",
       "--disable-backgrounding-occluded-windows",
       "--disable-renderer-backgrounding",
