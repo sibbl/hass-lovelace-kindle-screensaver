@@ -23,8 +23,6 @@ services:
       - HA_BATTERY_WEBHOOK=89aaebcdfdf585a9b344
     # ports:
     #   - 5000:5000
-    devices:
-      - /dev/dri:/dev/dri
     tmpfs:
       - /tmp:size=512M
     volumes:

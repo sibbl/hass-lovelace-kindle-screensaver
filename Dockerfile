@@ -12,6 +12,8 @@ RUN apk add --no-cache \
     harfbuzz \
     ca-certificates \
     ttf-freefont \
+    # Software GL rendering for headless Chrome
+    mesa-dri-gallium \
     # Additional packages for better performance
     dumb-init \
     # Sharp dependencies
