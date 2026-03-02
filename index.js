@@ -229,6 +229,12 @@ function getContentType(ext) {
 
 async function launchBrowserAndLogin() {
   console.log("Starting browser...");
+  // Log /tmp usage before launch
+  try {
+    const { execSync } = require('child_process');
+    console.log(`[DIAG] /tmp usage before launch:\n${execSync('df -h /tmp && echo "---" && du -sh /tmp/* 2>/dev/null || true').toString()}`);
+  } catch (_) {}
+
   const browser = await puppeteer.launch({
     args: [
       "--disable-dev-shm-usage",
@@ -250,6 +256,10 @@ async function launchBrowserAndLogin() {
     timeout: config.browserLaunchTimeout,
     headless: config.debug !== true
   });
+
+  const version = await browser.version();
+  console.log(`[DIAG] Browser version: ${version}`);
+  browser.on('disconnected', () => console.error('[DIAG] Browser disconnected!'));
 
   console.log(`Visiting '${config.baseUrl}' to login...`);
   const page = await browser.newPage();
@@ -352,8 +362,13 @@ async function renderAndConvertAsync(existingBrowser) {
       if (proc && !proc.killed) {
         proc.kill('SIGKILL');
       }
-      // Give OS a moment to reclaim memory
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Clean all Chrome temp files from /tmp so the next cycle starts fresh
+      try {
+        const tmpFiles = await fs.readdir('/tmp');
+        for (const f of tmpFiles) {
+          await fsExtra.remove(path.join('/tmp', f)).catch(() => {});
+        }
+      } catch (_) {}
     }
   }
 }
@@ -392,6 +407,16 @@ async function renderUrlToImageAsync(browser, pageConfig, url, path) {
   let page;
   try {
     page = await browser.newPage();
+
+    page.on('error', err => console.error(`[DIAG] Page crashed: ${err.message}`));
+    page.on('close', () => console.warn('[DIAG] Page was closed'));
+    page.on('requestfailed', request => console.warn(`[DIAG] Request failed: ${request.url()} - ${request.failure()?.errorText}`));
+
+    // Log /tmp usage before navigation
+    try {
+      const { execSync } = require('child_process');
+      console.log(`[DIAG] /tmp usage before navigation:\n${execSync('df -h /tmp 2>/dev/null && du -sh /tmp/* 2>/dev/null || true').toString()}`);
+    } catch (_) {}
 
     // Add console logging in debug mode
     if (config.debug) {
