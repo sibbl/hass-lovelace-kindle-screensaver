@@ -250,6 +250,7 @@ async function launchBrowserAndLogin() {
       `--lang=${config.language}`,
       config.ignoreCertificateErrors && "--ignore-certificate-errors"
     ].filter((x) => x),
+    dumpio: true,
     defaultViewport: null,
     timeout: config.browserLaunchTimeout,
     headless: config.debug !== true
@@ -257,6 +258,10 @@ async function launchBrowserAndLogin() {
 
   const version = await browser.version();
   console.log(`[DIAG] Browser version: ${version}`);
+  const chromeProc = browser.process();
+  if (chromeProc) {
+    chromeProc.on('exit', (code, signal) => console.error(`[DIAG] Chrome exited: code=${code} signal=${signal}`));
+  }
   browser.on('disconnected', () => console.error('[DIAG] Browser disconnected!'));
 
   console.log(`Visiting '${config.baseUrl}' to login...`);
