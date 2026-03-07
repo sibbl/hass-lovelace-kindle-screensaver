@@ -249,6 +249,9 @@ async function launchBrowserAndLogin() {
       "--disable-ipc-flooding-protection",
       "--no-first-run",
       "--no-default-browser-check",
+      "--user-data-dir=/tmp/chromium-data",
+      "--disk-cache-dir=/tmp/chromium-cache",
+      "--crash-dumps-dir=/tmp/chromium-crashes",
       `--lang=${config.language}`,
       config.ignoreCertificateErrors && "--ignore-certificate-errors"
     ].filter((x) => x),
