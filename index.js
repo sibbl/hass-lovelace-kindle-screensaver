@@ -251,6 +251,7 @@ async function launchBrowserAndLogin() {
       "--no-default-browser-check",
       "--user-data-dir=/tmp/chromium-data",
       "--disk-cache-dir=/tmp/chromium-cache",
+      "--disk-cache-size=0",
       "--crash-dumps-dir=/tmp/chromium-crashes",
       `--lang=${config.language}`,
       config.ignoreCertificateErrors && "--ignore-certificate-errors"
