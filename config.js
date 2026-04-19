@@ -55,4 +55,6 @@ module.exports = {
   debug: process.env.DEBUG === "true",
   ignoreCertificateErrors:
     process.env.UNSAFE_IGNORE_CERTIFICATE_ERRORS === "true",
+  httpAuthUser: process.env.HTTP_AUTH_USER || null,
+  httpAuthPassword: process.env.HTTP_AUTH_PASSWORD || null,
 };
