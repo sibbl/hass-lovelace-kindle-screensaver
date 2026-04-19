@@ -1,3 +1,4 @@
+require("dotenv").config();
 const config = require("./config");
 const path = require("path");
 const http = require("http");
@@ -77,7 +78,30 @@ const batteryStore = {};
     });
   }
 
+  const requireAuth = config.httpAuthUser && config.httpAuthPassword;
+  if (requireAuth) {
+    console.log("Basic auth enabled for HTTP server");
+  }
+
   const httpServer = http.createServer(async (request, response) => {
+    // Check basic auth if configured
+    if (requireAuth) {
+      const authHeader = request.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Basic ")) {
+        response.writeHead(401, { "WWW-Authenticate": 'Basic realm="hass-lovelace-kindle-screensaver"' });
+        response.end("Unauthorized");
+        return;
+      }
+      const credentials = Buffer.from(authHeader.slice(6), "base64").toString();
+      const [user, ...passwordParts] = credentials.split(":");
+      const password = passwordParts.join(":");
+      if (user !== config.httpAuthUser || password !== config.httpAuthPassword) {
+        response.writeHead(401, { "WWW-Authenticate": 'Basic realm="hass-lovelace-kindle-screensaver"' });
+        response.end("Unauthorized");
+        return;
+      }
+    }
+
     // Parse the request
     const url = new URL(request.url, `http://${request.headers.host}`);
     // Check the page number
