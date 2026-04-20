@@ -1,0 +1,48 @@
+version: "3.8"
+
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:2024.12
+    ports:
+      - "18123:8123"
+    volumes:
+      - ha-config:/config
+    environment:
+      - TZ=UTC
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8123/api/"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 30s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "15000:5000"
+    env_file:
+      - .env.test
+    environment:
+      - PORT=5000
+      - CRON_JOB=* * * * *
+      - RENDERING_TIMEOUT=60000
+      - RENDERING_DELAY=2000
+      - RENDERING_SCREEN_HEIGHT=800
+      - RENDERING_SCREEN_WIDTH=600
+      - GRAYSCALE_DEPTH=8
+      - OUTPUT_PATH=/output/cover
+      - LANGUAGE=en
+      - ROTATION=0
+      - SCALING=1
+      - UNSAFE_IGNORE_CERTIFICATE_ERRORS=true
+    volumes:
+      - app-output:/output
+    depends_on:
+      homeassistant:
+        condition: service_healthy
+
+volumes:
+  ha-config:
+  app-output:

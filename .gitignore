@@ -1,8 +1,11 @@
 node_modules/
 .vscode/
-config.*.js
-docker-compose.*.yml
+config.local.js
+config.dev.js
 cover.png
 .devcontainer/
 .DS_Store
 .env
+.env.test
+test-results/
+playwright-report/

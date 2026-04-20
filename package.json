@@ -4,15 +4,26 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run --config vitest.config.js",
+    "test:e2e": "playwright test",
+    "test:e2e:setup": "docker compose -f docker-compose.test.yml up -d --build --wait",
+    "test:e2e:teardown": "docker compose -f docker-compose.test.yml down -v"
   },
   "author": "sibbl",
   "license": "MIT",
   "dependencies": {
     "cron": "^1.8.2",
-    "dotenv": "^16.6.1",
     "fs-extra": "^10.0.0",
     "gm": "^1.23.1",
     "puppeteer": "^11.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.0",
+    "dotenv": "^17.4.2",
+    "vitest": "^4.1.4"
   }
 }

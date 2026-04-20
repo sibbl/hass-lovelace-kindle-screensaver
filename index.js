@@ -1,75 +1,31 @@
 require("dotenv").config();
-const config = require("./config");
-const path = require("path");
-const http = require("http");
-const https = require("https");
-const { promises: fs } = require("fs");
-const fsExtra = require("fs-extra");
 const puppeteer = require("puppeteer");
 const { CronJob } = require("cron");
-const gm = require("gm");
-const crypto = require("crypto");
+
+const { loadConfig } = require("./lib/config");
+const { validateConfig } = require("./lib/app");
+const { createHttpServer } = require("./lib/server");
+const { renderAndConvertAsync } = require("./lib/renderer");
+
+const config = loadConfig();
 
 // keep state of current battery level and whether the device is charging
 const batteryStore = {};
 
-// Helper function to calculate file hash
-async function getFileHash(filePath) {
-  try {
-    const fileBuffer = await fs.readFile(filePath);
-    return crypto.createHash('sha256').update(fileBuffer).digest('hex');
-  } catch (error) {
-    return null;
-  }
-}
-
 (async () => {
-  if (config.pages.length === 0) {
-    return console.error("Please check your configuration");
-  }
-  
-  // Validate HA_BASE_URL is not the default placeholder
-  if (!config.baseUrl || config.baseUrl.trim() === '') {
-    console.error("ERROR: HA_BASE_URL is not configured.");
-    console.error("Please set HA_BASE_URL to your Home Assistant instance URL.");
-    return console.error("Example: https://homeassistant.local:8123 or http://192.168.1.100:8123");
-  }
-  
-  // Check for common placeholder values
-  const placeholderPatterns = [
-    'your-path-to-home-assistant',
-    'your-hass-instance',
-    'your-home-assistant',
-    'example.com'
-  ];
-  
-  const baseUrlLower = config.baseUrl.toLowerCase();
-  for (const pattern of placeholderPatterns) {
-    if (baseUrlLower.includes(pattern)) {
-      console.error(`ERROR: HA_BASE_URL contains placeholder text: "${config.baseUrl}"`);
-      console.error("Please update HA_BASE_URL to your actual Home Assistant instance URL.");
-      console.error("Examples:");
-      console.error("  - https://homeassistant.local:8123");
-      console.error("  - http://192.168.1.100:8123");
-      return console.error("  - https://my-home.duckdns.org:8123");
+  const errors = validateConfig(config);
+  if (errors.length > 0) {
+    for (const error of errors) {
+      console.error(error);
     }
+    return;
   }
-  
-  // Validate HA_ACCESS_TOKEN is provided
-  if (!config.accessToken || config.accessToken.trim() === '') {
-    console.error("ERROR: HA_ACCESS_TOKEN is not configured.");
-    console.error("Please create a long-lived access token in Home Assistant:");
-    console.error("  1. Go to your Home Assistant profile");
-    console.error("  2. Scroll down to 'Long-Lived Access Tokens'");
-    console.error("  3. Click 'Create Token'");
-    return console.error("  4. Copy the token and set it as HA_ACCESS_TOKEN");
-  }
-  
+
   for (const i in config.pages) {
     const pageConfig = config.pages[i];
     if (pageConfig.rotation % 90 > 0) {
       return console.error(
-        `Invalid rotation value for entry ${i + 1}: ${pageConfig.rotation}`
+        `Invalid rotation value for entry ${Number(i) + 1}: ${pageConfig.rotation}`
       );
     }
   }
@@ -119,331 +75,22 @@ async function getFileHash(filePath) {
     console.log(
       "Debug mode active, will only render once in non-headless model and keep page open"
     );
-    renderAndConvertAsync(browser);
+    renderAndConvertAsync(browser, config, batteryStore);
   } else {
     console.log("Starting first render...");
-    await renderAndConvertAsync(browser);
+    await renderAndConvertAsync(browser, config, batteryStore);
     console.log("Starting rendering cronjob...");
     new CronJob({
       cronTime: config.cronJob,
-      onTick: () => renderAndConvertAsync(browser),
+      onTick: () => renderAndConvertAsync(browser, config, batteryStore),
       start: true
     });
   }
 
-  const requireAuth = config.httpAuthUser && config.httpAuthPassword;
-  if (requireAuth) {
-    console.log("Basic auth enabled for HTTP server");
-  }
-
-  const httpServer = http.createServer(async (request, response) => {
-    // Check basic auth if configured
-    if (requireAuth) {
-      const authHeader = request.headers.authorization;
-      if (!authHeader || !authHeader.startsWith("Basic ")) {
-        response.writeHead(401, { "WWW-Authenticate": 'Basic realm="hass-lovelace-kindle-screensaver"' });
-        response.end("Unauthorized");
-        return;
-      }
-      const credentials = Buffer.from(authHeader.slice(6), "base64").toString();
-      const [user, ...passwordParts] = credentials.split(":");
-      const password = passwordParts.join(":");
-      if (user !== config.httpAuthUser || password !== config.httpAuthPassword) {
-        response.writeHead(401, { "WWW-Authenticate": 'Basic realm="hass-lovelace-kindle-screensaver"' });
-        response.end("Unauthorized");
-        return;
-      }
-    }
-
-    // Parse the request
-    const url = new URL(request.url, `http://${request.headers.host}`);
-    // Check the page number
-    const pageNumberStr = url.pathname;
-    // and get the battery level, if any
-    // (see https://github.com/sibbl/hass-lovelace-kindle-screensaver/README.md for patch to generate it on Kindle)
-    const batteryLevel = parseInt(url.searchParams.get("batteryLevel"));
-    const isCharging = url.searchParams.get("isCharging");
-    const pageNumber =
-      pageNumberStr === "/" ? 1 : parseInt(pageNumberStr.substr(1));
-    if (
-      isFinite(pageNumber) === false ||
-      pageNumber > config.pages.length ||
-      pageNumber < 1
-    ) {
-      console.log(`Invalid request: ${request.url} for page ${pageNumber}`);
-      response.writeHead(400);
-      response.end("Invalid request");
-      return;
-    }
-    try {
-      // Log when the page was accessed
-      const n = new Date();
-      console.log(`${n.toISOString()}: Image ${pageNumber} was accessed (${request.method})`);
-
-      const pageIndex = pageNumber - 1;
-      const configPage = config.pages[pageIndex];
-
-      const outputPathWithExtension = configPage.outputPath + "." + configPage.imageFormat;
-      const data = await fs.readFile(outputPathWithExtension);
-      const stat = await fs.stat(outputPathWithExtension);
-
-      const lastModifiedTime = new Date(stat.mtime).toUTCString();
-      const etag = crypto.createHash('sha256').update(data).digest('hex');
-
-      const headers = {
-        "Content-Type": "image/" + configPage.imageFormat,
-        "Content-Length": Buffer.byteLength(data),
-        "Last-Modified": lastModifiedTime,
-        "ETag": `"${etag}"`,
-        "Cache-Control": "no-cache"
-      };
-
-      // Support HEAD requests — return headers only, no body
-      if (request.method === "HEAD") {
-        response.writeHead(200, headers);
-        response.end();
-      } else {
-        response.writeHead(200, headers);
-        response.end(data);
-      }
-
-      let pageBatteryStore = batteryStore[pageIndex];
-      if (!pageBatteryStore) {
-        pageBatteryStore = batteryStore[pageIndex] = {
-          batteryLevel: null,
-          isCharging: false
-        };
-      }
-      if (!isNaN(batteryLevel) && batteryLevel >= 0 && batteryLevel <= 100) {
-        if (batteryLevel !== pageBatteryStore.batteryLevel) {
-          pageBatteryStore.batteryLevel = batteryLevel;
-          console.log(
-            `New battery level: ${batteryLevel} for page ${pageNumber}`
-          );
-        }
-
-        if (
-          (isCharging === "Yes" || isCharging === "1") &&
-          pageBatteryStore.isCharging !== true) {
-          pageBatteryStore.isCharging = true;
-          console.log(`Battery started charging for page ${pageNumber}`);
-        } else if (
-          (isCharging === "No" || isCharging === "0") &&
-          pageBatteryStore.isCharging !== false
-        ) {
-          console.log(`Battery stopped charging for page ${pageNumber}`);
-          pageBatteryStore.isCharging = false;
-        }
-      }
-    } catch (e) {
-      console.error(e);
-      response.writeHead(404);
-      response.end("Image not found");
-    }
-  });
+  const httpServer = createHttpServer(config, batteryStore);
 
   const port = config.port || 5000;
   httpServer.listen(port, () => {
     console.log(`Server is running at ${port}`);
   });
 })();
-
-async function renderAndConvertAsync(browser) {
-  for (let pageIndex = 0; pageIndex < config.pages.length; pageIndex++) {
-    const pageConfig = config.pages[pageIndex];
-    const pageBatteryStore = batteryStore[pageIndex];
-
-    const url = `${config.baseUrl}${pageConfig.screenShotUrl}`;
-
-    const outputPath = pageConfig.outputPath + "." + pageConfig.imageFormat;
-    await fsExtra.ensureDir(path.dirname(outputPath));
-
-    const tempPath = outputPath + ".temp";
-
-    console.log(`Rendering ${url} to image...`);
-    await renderUrlToImageAsync(browser, pageConfig, url, tempPath);
-
-    if (!(await fsExtra.pathExists(tempPath))) {
-      console.error(`Screenshot missing: ${tempPath}`);
-      continue;
-    }
-
-    console.log(`Converting rendered screenshot of ${url} to grayscale...`);
-
-    const finalTempPath = outputPath + ".final.temp";
-    await convertImageToKindleCompatiblePngAsync(
-      pageConfig,
-      tempPath,
-      finalTempPath
-    );
-
-    // Compare with existing image — only update if changed
-    let hasChanged = true;
-    if (await fsExtra.pathExists(outputPath)) {
-      const newHash = await getFileHash(finalTempPath);
-      const existingHash = await getFileHash(outputPath);
-
-      if (newHash && existingHash && newHash === existingHash) {
-        hasChanged = false;
-        console.log(`Image unchanged for ${url}, skipping update`);
-      } else {
-        console.log(`Image changed for ${url}, updating`);
-      }
-    } else {
-      console.log(`First render for ${url}, creating image`);
-    }
-
-    if (hasChanged) {
-      await fsExtra.move(finalTempPath, outputPath, { overwrite: true });
-    } else {
-      await fs.unlink(finalTempPath);
-    }
-
-    await fs.unlink(tempPath);
-    console.log(`Finished ${url}`);
-
-    if (
-      pageBatteryStore &&
-      pageBatteryStore.batteryLevel !== null &&
-      pageConfig.batteryWebHook
-    ) {
-      sendBatteryLevelToHomeAssistant(
-        pageIndex,
-        pageBatteryStore,
-        pageConfig.batteryWebHook
-      );
-    }
-  }
-}
-
-function sendBatteryLevelToHomeAssistant(
-  pageIndex,
-  batteryStore,
-  batteryWebHook
-) {
-  const batteryStatus = JSON.stringify(batteryStore);
-  const options = {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Content-Length": Buffer.byteLength(batteryStatus)
-    },
-    rejectUnauthorized: !config.ignoreCertificateErrors
-  };
-  const url = `${config.baseUrl}/api/webhook/${batteryWebHook}`;
-  const httpLib = url.toLowerCase().startsWith("https") ? https : http;
-  const req = httpLib.request(url, options, (res) => {
-    if (res.statusCode !== 200) {
-      console.error(
-        `Update device ${pageIndex} at ${url} status ${res.statusCode}: ${res.statusMessage}`
-      );
-    }
-  });
-  req.on("error", (e) => {
-    console.error(`Update ${pageIndex} at ${url} error: ${e.message}`);
-  });
-  req.write(batteryStatus);
-  req.end();
-}
-
-async function renderUrlToImageAsync(browser, pageConfig, url, path) {
-  let page;
-  try {
-    page = await browser.newPage();
-    await page.emulateMediaFeatures([
-      {
-        name: "prefers-color-scheme",
-        value: `${pageConfig.prefersColorScheme}`
-      }
-    ]);
-
-    let size = {
-      width: Number(pageConfig.renderingScreenSize.width),
-      height: Number(pageConfig.renderingScreenSize.height)
-    };
-
-    if (pageConfig.rotation % 180 > 0) {
-      size = {
-        width: size.height,
-        height: size.width
-      };
-    }
-
-    await page.setViewport(size);
-    const startTime = new Date().valueOf();
-    await page.goto(url, {
-      waitUntil: ["domcontentloaded", "load", "networkidle0"],
-      timeout: config.renderingTimeout
-    });
-
-    const navigateTimespan = new Date().valueOf() - startTime;
-    await page.waitForSelector("home-assistant", {
-      timeout: Math.max(config.renderingTimeout - navigateTimespan, 1000)
-    });
-
-    await page.addStyleTag({
-      content: `
-        body {
-          zoom: ${pageConfig.scaling * 100}%;
-          overflow: hidden;
-        }`
-    });
-
-    if (pageConfig.renderingDelay > 0) {
-      await page.waitForTimeout(pageConfig.renderingDelay);
-    }
-    await page.screenshot({
-      path,
-      type: 'png', // Always use PNG for screenshot
-      captureBeyondViewport: false,
-      clip: {
-        x: 0,
-        y: 0,
-        ...size
-      }
-    });
-  } catch (e) {
-    console.error("Failed to render", e);
-  } finally {
-    if (config.debug === false) {
-      await page.close();
-    }
-  }
-}
-
-function convertImageToKindleCompatiblePngAsync(
-  pageConfig,
-  inputPath,
-  outputPath
-) {
-  return new Promise((resolve, reject) => {
-    let gmInstance = gm(inputPath)
-      .options({
-        imageMagick: config.useImageMagick === true
-      })
-      .gamma(pageConfig.removeGamma ? 1.0 / 2.2 : 1.0)
-      .modulate(100, 100 * pageConfig.saturation)
-      .contrast(pageConfig.contrast)
-      .dither(pageConfig.dither)
-      .rotate("white", pageConfig.rotation)
-      .type(pageConfig.colorMode)
-      .level(pageConfig.blackLevel, pageConfig.whiteLevel)
-      .bitdepth(pageConfig.grayscaleDepth);
-
-    // For BMP format, we don't set quality since it's not applicable
-    if (pageConfig.imageFormat !== 'bmp') {
-      gmInstance = gmInstance.quality(100);
-    }
-
-    // Strip metadata to ensure deterministic output for hash comparison
-    gmInstance = gmInstance.strip();
-
-    gmInstance.write(outputPath, (err) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve();
-      }
-    });
-  });
-}
