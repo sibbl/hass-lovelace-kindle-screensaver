@@ -72,7 +72,7 @@ After making code changes, test these scenarios:
 │   ├── image.ts          # Image conversion (gm)
 │   ├── battery.ts        # Battery webhook to HA
 │   ├── server.ts         # HTTP server
-│   └── renderer.ts       # Puppeteer screenshot pipeline
+│   └── renderer.ts       # Playwright screenshot pipeline
 ├── dist/                 # Compiled JS output (gitignored)
 ├── tests/
 │   ├── unit/             # Vitest unit tests
@@ -107,7 +107,7 @@ After making code changes, test these scenarios:
 ### Network and Dependencies Limitations
 In restricted environments:
 - Docker builds will fail due to Alpine package downloads
-- Puppeteer cannot download Chromium (solved by PUPPETEER_SKIP_DOWNLOAD=true)
+- Playwright cannot download Chromium (solved by PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1)
 - External package repositories may be inaccessible
 - Always document actual failure points rather than assuming they work
 
@@ -131,8 +131,8 @@ In restricted environments:
 
 ## Debugging Common Issues
 - **"Please check your configuration"**: Missing required environment variables
-- **"Could not find expected browser"**: Missing Chrome/Chromium, use Docker instead
-- **"Network error"**: Use PUPPETEER_SKIP_DOWNLOAD=true for npm install
+- **"Could not find expected browser"**: Missing Chromium, use Docker instead
+- **"Network error"**: Use PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 for npm install
 - **Docker build failures**: Network restrictions prevent Alpine package downloads
 - **Connection timeouts**: Home Assistant instance not accessible from current network
 
