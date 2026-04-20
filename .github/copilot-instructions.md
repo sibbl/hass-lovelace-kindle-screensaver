@@ -1,6 +1,6 @@
 # Home Assistant Lovelace Kindle Screensaver
 
-This is a Node.js application that generates Kindle-compatible screensaver images from Home Assistant Lovelace dashboards using Puppeteer (headless Chrome) and image processing tools.
+This is a Node.js application that generates Kindle-compatible screensaver images from Home Assistant Lovelace dashboards using Playwright (headless Chromium) and image processing tools.
 
 Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.
 
@@ -10,10 +10,10 @@ Always reference these instructions first and fallback to search or bash command
 Install required system dependencies before starting:
 - `sudo apt-get update` -- takes 30-60 seconds
 - `sudo apt-get install -y imagemagick graphicsmagick` -- takes 60-120 seconds
-- Browser: The application requires Chrome/Chromium but cannot download it in restricted environments. Use Docker instead for full functionality.
+- Browser: The application requires Chromium but cannot download it in restricted environments. Use Docker instead for full functionality.
 
 ### Bootstrap and Dependencies
-- `PUPPETEER_SKIP_DOWNLOAD=true npm install` -- takes 1-2 seconds. ALWAYS use PUPPETEER_SKIP_DOWNLOAD=true to avoid network download failures.
+- `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install` -- takes 1-2 seconds. ALWAYS use PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 to avoid network download failures.
 - Build TypeScript: `npm run build` compiles src/ to dist/.
 - Type check: `npm run typecheck`
 

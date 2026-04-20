@@ -1,23 +1,23 @@
-FROM node:22-alpine3.20 AS builder
+FROM node:24-alpine3.21 AS builder
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci
 
 COPY tsconfig.json ./
 COPY src/ ./src/
 
 RUN npx tsc
 
-FROM node:22-alpine3.20
+FROM node:24-alpine3.21
 
 WORKDIR /app
 
 RUN apk add --no-cache \
     chromium \
     nss \
-    freetype \    
+    freetype \
     font-noto-emoji \
     font-noto-cjk \
     freetype-dev \
@@ -26,14 +26,14 @@ RUN apk add --no-cache \
     ttf-freefont \
     imagemagick
 
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
     USE_IMAGE_MAGICK=true
 
 COPY package*.json ./
 COPY local.conf /etc/fonts/local.conf
 
-RUN npm ci --omit=dev
+RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci --omit=dev
 
 COPY --from=builder /app/dist/ ./dist/
 

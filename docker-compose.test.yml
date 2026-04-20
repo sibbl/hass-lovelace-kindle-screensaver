@@ -2,8 +2,7 @@ version: "3.8"
 
 services:
   homeassistant:
-    image: ghcr.io/home-assistant/home-assistant:2024.12
-    ports:
+    image: ghcr.io/home-assistant/home-assistant:2026.4
       - "18123:8123"
     volumes:
       - ha-config:/config

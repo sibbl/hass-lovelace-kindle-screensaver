@@ -1,29 +1,26 @@
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
 import * as fsExtra from "fs-extra";
-import type { Browser, Page } from "puppeteer";
+import type { BrowserContext } from "playwright";
 import { getFileHash } from "./hash";
 import { convertImageToKindleCompatiblePngAsync } from "./image";
 import { sendBatteryLevelToHomeAssistant } from "./battery";
 import type { AppConfig, BatteryStore, PageConfig } from "./types";
 
 export async function renderUrlToImageAsync(
-  browser: Browser,
+  context: BrowserContext,
   pageConfig: PageConfig,
   url: string,
   outputPath: string,
   renderingTimeout: number,
   debug: boolean,
 ): Promise<void> {
-  let page: Page | undefined;
+  let page: import("playwright").Page | undefined;
   try {
-    page = await browser.newPage();
-    await page.emulateMediaFeatures([
-      {
-        name: "prefers-color-scheme",
-        value: pageConfig.prefersColorScheme,
-      },
-    ]);
+    page = await context.newPage();
+    await page.emulateMedia({
+      colorScheme: pageConfig.prefersColorScheme,
+    });
 
     let size = {
       width: Number(pageConfig.renderingScreenSize.width),
@@ -37,10 +34,10 @@ export async function renderUrlToImageAsync(
       };
     }
 
-    await page.setViewport(size);
+    await page.setViewportSize(size);
     const startTime = Date.now();
     await page.goto(url, {
-      waitUntil: ["domcontentloaded", "load", "networkidle0"],
+      waitUntil: "load",
       timeout: renderingTimeout,
     });
 
@@ -63,7 +60,6 @@ export async function renderUrlToImageAsync(
     await page.screenshot({
       path: outputPath,
       type: "png",
-      captureBeyondViewport: false,
       clip: {
         x: 0,
         y: 0,
@@ -80,7 +76,7 @@ export async function renderUrlToImageAsync(
 }
 
 export async function renderAndConvertAsync(
-  browser: Browser,
+  context: BrowserContext,
   config: AppConfig,
   batteryStore: BatteryStore,
 ): Promise<void> {
@@ -98,7 +94,7 @@ export async function renderAndConvertAsync(
 
     console.log(`Rendering ${url} to image...`);
     await renderUrlToImageAsync(
-      browser,
+      context,
       pageConfig,
       url,
       tempPath,

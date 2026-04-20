@@ -1,5 +1,5 @@
 import "dotenv/config";
-import puppeteer from "puppeteer";
+import { chromium } from "playwright";
 import { CronJob } from "cron";
 import { loadConfig } from "./config";
 import { validateConfig } from "./validate";
@@ -19,21 +19,27 @@ async function main(): Promise<void> {
     return;
   }
 
+  const executablePath = process.env["PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"];
+
   console.log("Starting browser...");
-  const browser = await puppeteer.launch({
+  const browser = await chromium.launch({
     args: [
       "--disable-dev-shm-usage",
       "--no-sandbox",
       `--lang=${config.language}`,
       ...(config.ignoreCertificateErrors ? ["--ignore-certificate-errors"] : []),
     ],
-    defaultViewport: null,
+    executablePath: executablePath ?? undefined,
     timeout: config.browserLaunchTimeout,
     headless: config.debug !== true,
   });
 
+  const context = await browser.newContext({
+    ignoreHTTPSErrors: config.ignoreCertificateErrors,
+  });
+
   console.log(`Visiting '${config.baseUrl}' to login...`);
-  const page = await browser.newPage();
+  const page = await context.newPage();
   await page.goto(config.baseUrl ?? "", {
     timeout: config.renderingTimeout,
   });
@@ -46,16 +52,18 @@ async function main(): Promise<void> {
 
   console.log("Adding authentication entry to browser's local storage...");
   await page.evaluate(
-    (tokensJson: string, languageJson: string, themeJson: string | null) => {
+    ([tokensJson, languageJson, themeJson]: [string, string, string | null]) => {
       localStorage.setItem("hassTokens", tokensJson);
       localStorage.setItem("selectedLanguage", languageJson);
       if (themeJson) {
         localStorage.setItem("selectedTheme", themeJson);
       }
     },
-    JSON.stringify(hassTokens),
-    JSON.stringify(config.language),
-    config.theme ? JSON.stringify(config.theme) : null,
+    [
+      JSON.stringify(hassTokens),
+      JSON.stringify(config.language),
+      config.theme ? JSON.stringify(config.theme) : null,
+    ] as [string, string, string | null],
   );
 
   await page.close();
@@ -64,15 +72,15 @@ async function main(): Promise<void> {
     console.log(
       "Debug mode active, will only render once in non-headless model and keep page open",
     );
-    void renderAndConvertAsync(browser, config, batteryStore);
+    void renderAndConvertAsync(context, config, batteryStore);
   } else {
     console.log("Starting first render...");
-    await renderAndConvertAsync(browser, config, batteryStore);
+    await renderAndConvertAsync(context, config, batteryStore);
     console.log("Starting rendering cronjob...");
     const cronJob = new CronJob({
       cronTime: config.cronJob,
       onTick: () => {
-        void renderAndConvertAsync(browser, config, batteryStore);
+        void renderAndConvertAsync(context, config, batteryStore);
       },
       start: true,
     });

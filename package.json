@@ -16,7 +16,8 @@
     "test:unit": "vitest run --config vitest.config.js",
     "test:e2e": "playwright test",
     "test:e2e:setup": "docker compose -f docker-compose.test.yml up -d --build --wait",
-    "test:e2e:teardown": "docker compose -f docker-compose.test.yml down -v"
+    "test:e2e:teardown": "docker compose -f docker-compose.test.yml down -v",
+    "prepare": "husky"
   },
   "author": "sibbl",
   "license": "MIT",
@@ -25,7 +26,7 @@
     "dotenv": "^17.4.2",
     "fs-extra": "^10.0.0",
     "gm": "^1.23.1",
-    "puppeteer": "^11.0.0"
+    "playwright": "^1.59.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
@@ -33,10 +34,22 @@
     "@types/fs-extra": "^11.0.4",
     "@types/gm": "^1.25.4",
     "@types/node": "^25.6.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "oxfmt": "^0.45.0",
     "oxlint": "^1.60.0",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.4"
+  },
+  "lint-staged": {
+    "src/**/*.ts": [
+      "oxfmt --write",
+      "oxlint"
+    ],
+    "tests/**/*.{js,ts}": [
+      "oxfmt --write",
+      "oxlint"
+    ]
   }
 }

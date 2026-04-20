@@ -2,13 +2,13 @@
 
 ## Project Overview
 
-Node.js application that generates Kindle-compatible screensaver images from Home Assistant Lovelace dashboards using Puppeteer (headless Chrome) and ImageMagick/GraphicsMagick.
+Node.js application that generates Kindle-compatible screensaver images from Home Assistant Lovelace dashboards using Playwright (headless Chromium) and ImageMagick/GraphicsMagick.
 
 ## Tech Stack
 
 - **Language**: TypeScript (strict mode, no `any`/`unknown`)
-- **Runtime**: Node.js 22 (Alpine in Docker)
-- **Browser**: Puppeteer with system Chromium
+- **Runtime**: Node.js 24 (Alpine in Docker)
+- **Browser**: Playwright with system Chromium
 - **Image Processing**: gm (GraphicsMagick/ImageMagick)
 - **Testing**: Vitest (unit), Playwright (e2e)
 - **Linting**: oxlint
@@ -25,7 +25,7 @@ src/           # TypeScript source (compiled to dist/)
   image.ts     # Image conversion (gm)
   battery.ts   # Battery webhook to HA
   server.ts    # HTTP server
-  renderer.ts  # Puppeteer screenshot pipeline
+  renderer.ts  # Playwright screenshot pipeline
   index.ts     # Entry point (cron, orchestration)
 tests/
   unit/        # Vitest unit tests
@@ -38,10 +38,10 @@ dist/          # Compiled JS output (gitignored)
 ### Install
 
 ```bash
-PUPPETEER_SKIP_DOWNLOAD=true npm install
+PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install
 ```
 
-Always use `PUPPETEER_SKIP_DOWNLOAD=true` to avoid Chromium download failures.
+Always use `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` to avoid browser download failures.
 
 ### Build
 
@@ -107,12 +107,13 @@ npm start
 ### Docker
 
 - Multi-stage build: builder stage compiles TypeScript, production stage only has runtime deps.
-- Base image: `node:22-alpine3.20`
+- Base image: `node:24-alpine3.21`
 - System deps: chromium, imagemagick, fonts
+- Uses `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser` for system Chromium
 
 ## Important Notes
 
 - The application exits immediately without valid HA environment variables.
-- Cannot run Puppeteer without Chrome/Chromium installed (use Docker).
+- Cannot run Playwright without Chromium installed (use Docker or `npx playwright install chromium`).
 - `config.ts` returns properly typed numeric values; the old JS version returned strings.
 - E2e tests require Docker Compose with a Home Assistant container.
