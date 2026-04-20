@@ -14,7 +14,8 @@ Install required system dependencies before starting:
 
 ### Bootstrap and Dependencies
 - `PUPPETEER_SKIP_DOWNLOAD=true npm install` -- takes 1-2 seconds. ALWAYS use PUPPETEER_SKIP_DOWNLOAD=true to avoid network download failures.
-- Build time: No compilation step needed, this is a direct-run Node.js application.
+- Build TypeScript: `npm run build` compiles src/ to dist/.
+- Type check: `npm run typecheck`
 
 ### Running the Application
 **CRITICAL**: This application requires a working Home Assistant instance to be fully functional. Without it, the application will fail during browser launch or screenshot generation.
@@ -60,12 +61,27 @@ After making code changes, test these scenarios:
 ## Common Tasks and Expected Outcomes
 
 ### Repository Structure
-```
+```text
 /
-├── index.js              # Main application entry point
-├── config.js             # Environment variable configuration
-├── package.json          # Node.js dependencies (minimal build config)
-├── Dockerfile            # Alpine-based container definition
+├── src/                  # TypeScript source files
+│   ├── index.ts          # Entry point (cron, orchestration)
+│   ├── types.ts          # Shared interfaces
+│   ├── config.ts         # Environment variable parsing
+│   ├── validate.ts       # Configuration validation
+│   ├── hash.ts           # File hashing (SHA-256)
+│   ├── image.ts          # Image conversion (gm)
+│   ├── battery.ts        # Battery webhook to HA
+│   ├── server.ts         # HTTP server
+│   └── renderer.ts       # Puppeteer screenshot pipeline
+├── dist/                 # Compiled JS output (gitignored)
+├── tests/
+│   ├── unit/             # Vitest unit tests
+│   └── e2e/              # Playwright e2e tests
+├── tsconfig.json         # TypeScript config (strict)
+├── .oxlintrc.json        # oxlint config
+├── package.json          # Dependencies and scripts
+├── Dockerfile            # Multi-stage Alpine build
+├── Dockerfile.HA_ADDON   # Home Assistant add-on build
 ├── docker-compose.yml    # Local development setup
 ├── run.sh                # Home Assistant add-on entry script
 ├── config.yaml           # Home Assistant add-on configuration
