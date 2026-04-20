@@ -49,11 +49,8 @@ async function getFileHash(filePath) {
     headless: config.debug !== true
   });
 
-  console.log(`Visiting '${config.baseUrl}' to login...`);
+  console.log(`creating blank page`);
   let page = await browser.newPage();
-  await page.goto(config.baseUrl, {
-    timeout: config.renderingTimeout
-  });
 
   const hassTokens = {
     hassUrl: config.baseUrl,
@@ -74,6 +71,11 @@ async function getFileHash(filePath) {
     JSON.stringify(config.language),
     config.theme ? JSON.stringify(config.theme) : null
   );
+
+  console.log(`Visiting '${config.baseUrl}' ...`);
+  await page.goto(config.baseUrl, {
+    timeout: config.renderingTimeout
+  });
 
   page.close();
 
