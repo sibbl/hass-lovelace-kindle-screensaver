@@ -63,12 +63,16 @@ async function getFileHash(filePath) {
 
   console.log("Adding authentication entry to browser's local storage...");
   await page.evaluate(
-    (hassTokens, selectedLanguage) => {
+    (hassTokens, selectedLanguage, selectedTheme) => {
       localStorage.setItem("hassTokens", hassTokens);
       localStorage.setItem("selectedLanguage", selectedLanguage);
+      if (selectedTheme) {
+        localStorage.setItem("selectedTheme", selectedTheme);
+      }
     },
     JSON.stringify(hassTokens),
-    JSON.stringify(config.language)
+    JSON.stringify(config.language),
+    config.theme ? JSON.stringify(config.theme) : null
   );
 
   page.close();
