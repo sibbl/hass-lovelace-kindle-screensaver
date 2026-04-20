@@ -8,9 +8,20 @@ const fsExtra = require("fs-extra");
 const puppeteer = require("puppeteer");
 const { CronJob } = require("cron");
 const gm = require("gm");
+const crypto = require("crypto");
 
 // keep state of current battery level and whether the device is charging
 const batteryStore = {};
+
+// Helper function to calculate file hash
+async function getFileHash(filePath) {
+  try {
+    const fileBuffer = await fs.readFile(filePath);
+    return crypto.createHash('sha256').update(fileBuffer).digest('hex');
+  } catch (error) {
+    return null;
+  }
+}
 
 (async () => {
   if (config.pages.length === 0) {
@@ -125,23 +136,34 @@ const batteryStore = {};
     try {
       // Log when the page was accessed
       const n = new Date();
-      console.log(`${n.toISOString()}: Image ${pageNumber} was accessed`);
+      console.log(`${n.toISOString()}: Image ${pageNumber} was accessed (${request.method})`);
 
       const pageIndex = pageNumber - 1;
       const configPage = config.pages[pageIndex];
 
-      const outputPathWithExtension = configPage.outputPath + "." + configPage.imageFormat
+      const outputPathWithExtension = configPage.outputPath + "." + configPage.imageFormat;
       const data = await fs.readFile(outputPathWithExtension);
       const stat = await fs.stat(outputPathWithExtension);
 
       const lastModifiedTime = new Date(stat.mtime).toUTCString();
+      const etag = crypto.createHash('sha256').update(data).digest('hex');
 
-      response.writeHead(200, {
+      const headers = {
         "Content-Type": "image/" + configPage.imageFormat,
         "Content-Length": Buffer.byteLength(data),
-        "Last-Modified": lastModifiedTime
-      });
-      response.end(data);
+        "Last-Modified": lastModifiedTime,
+        "ETag": `"${etag}"`,
+        "Cache-Control": "no-cache"
+      };
+
+      // Support HEAD requests — return headers only, no body
+      if (request.method === "HEAD") {
+        response.writeHead(200, headers);
+        response.end();
+      } else {
+        response.writeHead(200, headers);
+        response.end(data);
+      }
 
       let pageBatteryStore = batteryStore[pageIndex];
       if (!pageBatteryStore) {
@@ -199,14 +221,43 @@ async function renderAndConvertAsync(browser) {
     console.log(`Rendering ${url} to image...`);
     await renderUrlToImageAsync(browser, pageConfig, url, tempPath);
 
+    if (!(await fsExtra.pathExists(tempPath))) {
+      console.error(`Screenshot missing: ${tempPath}`);
+      continue;
+    }
+
     console.log(`Converting rendered screenshot of ${url} to grayscale...`);
+
+    const finalTempPath = outputPath + ".final.temp";
     await convertImageToKindleCompatiblePngAsync(
       pageConfig,
       tempPath,
-      outputPath
+      finalTempPath
     );
 
-    fs.unlink(tempPath);
+    // Compare with existing image — only update if changed
+    let hasChanged = true;
+    if (await fsExtra.pathExists(outputPath)) {
+      const newHash = await getFileHash(finalTempPath);
+      const existingHash = await getFileHash(outputPath);
+
+      if (newHash && existingHash && newHash === existingHash) {
+        hasChanged = false;
+        console.log(`Image unchanged for ${url}, skipping update`);
+      } else {
+        console.log(`Image changed for ${url}, updating`);
+      }
+    } else {
+      console.log(`First render for ${url}, creating image`);
+    }
+
+    if (hasChanged) {
+      await fsExtra.move(finalTempPath, outputPath, { overwrite: true });
+    } else {
+      await fs.unlink(finalTempPath);
+    }
+
+    await fs.unlink(tempPath);
     console.log(`Finished ${url}`);
 
     if (
@@ -341,7 +392,10 @@ function convertImageToKindleCompatiblePngAsync(
     if (pageConfig.imageFormat !== 'bmp') {
       gmInstance = gmInstance.quality(100);
     }
-    
+
+    // Strip metadata to ensure deterministic output for hash comparison
+    gmInstance = gmInstance.strip();
+
     gmInstance.write(outputPath, (err) => {
       if (err) {
         reject(err);
