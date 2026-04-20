@@ -15,13 +15,13 @@ test.describe("Image serving", () => {
   test("GET / returns a valid image", async ({ request }) => {
     // Wait for the first render to complete (poll with retries)
     let response;
-    let lastError;
+    let _lastError;
     for (let i = 0; i < 30; i++) {
       try {
         response = await request.get(APP_URL);
         if (response.status() === 200) break;
       } catch (e) {
-        lastError = e;
+        _lastError = e;
       }
       await new Promise((r) => setTimeout(r, 5000));
     }
@@ -96,16 +96,12 @@ test.describe("Invalid requests", () => {
 
 test.describe("Battery tracking", () => {
   test("accepts battery level parameter", async ({ request }) => {
-    const response = await request.get(
-      `${APP_URL}/?batteryLevel=80&isCharging=No`
-    );
+    const response = await request.get(`${APP_URL}/?batteryLevel=80&isCharging=No`);
     expect(response.status()).toBe(200);
   });
 
   test("accepts charging status", async ({ request }) => {
-    const response = await request.get(
-      `${APP_URL}/?batteryLevel=50&isCharging=Yes`
-    );
+    const response = await request.get(`${APP_URL}/?batteryLevel=50&isCharging=Yes`);
     expect(response.status()).toBe(200);
   });
 });
@@ -122,9 +118,7 @@ test.describe("Image content", () => {
     expect(body[3]).toBe(0x47); // G
   });
 
-  test("subsequent requests return same ETag when unchanged", async ({
-    request,
-  }) => {
+  test("subsequent requests return same ETag when unchanged", async ({ request }) => {
     const res1 = await request.get(APP_URL);
     const res2 = await request.get(APP_URL);
     expect(res1.headers()["etag"]).toBe(res2.headers()["etag"]);

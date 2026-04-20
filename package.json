@@ -2,9 +2,15 @@
   "name": "hass-lovelace-kindle-screensaver",
   "version": "1.0.15",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "node index.js",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "start:dev": "tsx src/index.ts",
+    "lint": "oxlint src/ tests/",
+    "format": "oxfmt --write src/ tests/",
+    "format:check": "oxfmt --check src/ tests/",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run --config vitest.config.js",
@@ -16,14 +22,21 @@
   "license": "MIT",
   "dependencies": {
     "cron": "^1.8.2",
+    "dotenv": "^17.4.2",
     "fs-extra": "^10.0.0",
     "gm": "^1.23.1",
     "puppeteer": "^11.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
+    "@types/cron": "^2.0.1",
+    "@types/fs-extra": "^11.0.4",
+    "@types/gm": "^1.25.4",
     "@types/node": "^25.6.0",
-    "dotenv": "^17.4.2",
+    "oxfmt": "^0.45.0",
+    "oxlint": "^1.60.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.4"
   }
 }

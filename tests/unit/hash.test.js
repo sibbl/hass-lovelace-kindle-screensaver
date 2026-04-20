@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import os from "node:os";
-import { getFileHash } from "../../lib/hash.js";
+import { getFileHash } from "../../src/hash";
 
 describe("getFileHash", () => {
   let tempDir;

@@ -1,9 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import {
-  getEnvironmentVariable,
-  getPagesConfig,
-  loadConfig,
-} from "../../lib/config.js";
+import { getEnvironmentVariable, getPagesConfig, loadConfig } from "../../src/config";
 
 describe("config", () => {
   let originalEnv;
@@ -49,42 +45,36 @@ describe("config", () => {
   describe("getEnvironmentVariable", () => {
     it("should return value with suffix when available", () => {
       process.env["TEST_KEY_2"] = "suffixed_value";
-      
+
       expect(getEnvironmentVariable("TEST_KEY", "_2")).toBe("suffixed_value");
       delete process.env["TEST_KEY_2"];
     });
 
     it("should return fallback value when suffixed key is not set", () => {
-      
-      expect(getEnvironmentVariable("TEST_KEY", "_2", "fallback")).toBe(
-        "fallback"
-      );
+      expect(getEnvironmentVariable("TEST_KEY", "_2", "fallback")).toBe("fallback");
     });
 
     it("should return base key value when suffixed key and fallback are not set", () => {
       process.env["TEST_KEY"] = "base_value";
-      
+
       expect(getEnvironmentVariable("TEST_KEY", "_2")).toBe("base_value");
       delete process.env["TEST_KEY"];
     });
 
     it("should return undefined when no value exists", () => {
-      
       expect(getEnvironmentVariable("NONEXISTENT_KEY", "_2")).toBeUndefined();
     });
 
     it("should prefer suffixed value over fallback", () => {
       process.env["TEST_KEY_2"] = "suffixed";
-      
-      expect(getEnvironmentVariable("TEST_KEY", "_2", "fallback")).toBe(
-        "suffixed"
-      );
+
+      expect(getEnvironmentVariable("TEST_KEY", "_2", "fallback")).toBe("suffixed");
       delete process.env["TEST_KEY_2"];
     });
 
     it("should handle empty string suffix", () => {
       process.env["TEST_KEY"] = "direct_value";
-      
+
       expect(getEnvironmentVariable("TEST_KEY", "")).toBe("direct_value");
       delete process.env["TEST_KEY"];
     });
@@ -92,13 +82,12 @@ describe("config", () => {
 
   describe("getPagesConfig", () => {
     it("should return empty array when no HA_SCREENSHOT_URL is set", () => {
-      
       expect(getPagesConfig()).toEqual([]);
     });
 
     it("should parse a single page config with defaults", () => {
       process.env["HA_SCREENSHOT_URL"] = "/lovelace/0";
-      
+
       const pages = getPagesConfig();
       expect(pages).toHaveLength(1);
       expect(pages[0].screenShotUrl).toBe("/lovelace/0");
@@ -125,7 +114,7 @@ describe("config", () => {
       process.env["HA_SCREENSHOT_URL"] = "/lovelace/0";
       process.env["HA_SCREENSHOT_URL_2"] = "/lovelace/1";
       process.env["HA_SCREENSHOT_URL_3"] = "/lovelace/2";
-      
+
       const pages = getPagesConfig();
       expect(pages).toHaveLength(3);
       expect(pages[0].screenShotUrl).toBe("/lovelace/0");
@@ -140,12 +129,12 @@ describe("config", () => {
       process.env["RENDERING_SCREEN_WIDTH_2"] = "768";
       process.env["ROTATION_2"] = "90";
       process.env["IMAGE_FORMAT_2"] = "jpeg";
-      
+
       const pages = getPagesConfig();
       expect(pages).toHaveLength(2);
-      expect(pages[1].renderingScreenSize.height).toBe("1024");
-      expect(pages[1].renderingScreenSize.width).toBe("768");
-      expect(pages[1].rotation).toBe("90");
+      expect(pages[1].renderingScreenSize.height).toBe(1024);
+      expect(pages[1].renderingScreenSize.width).toBe(768);
+      expect(pages[1].rotation).toBe(90);
       expect(pages[1].imageFormat).toBe("jpeg");
       // First page should have defaults
       expect(pages[0].renderingScreenSize.height).toBe(800);
@@ -157,7 +146,7 @@ describe("config", () => {
       process.env["HA_SCREENSHOT_URL_2"] = "/lovelace/1";
       process.env["OUTPUT_PATH"] = "/output/main";
       process.env["OUTPUT_PATH_2"] = "/output/secondary";
-      
+
       const pages = getPagesConfig();
       expect(pages[0].outputPath).toBe("/output/main");
       expect(pages[1].outputPath).toBe("/output/secondary");
@@ -167,7 +156,7 @@ describe("config", () => {
       process.env["HA_SCREENSHOT_URL"] = "/lovelace/0";
       process.env["REMOVE_GAMMA"] = "true";
       process.env["DITHER"] = "true";
-      
+
       const pages = getPagesConfig();
       expect(pages[0].removeGamma).toBe(true);
       expect(pages[0].dither).toBe(true);
@@ -177,7 +166,7 @@ describe("config", () => {
       process.env["HA_SCREENSHOT_URL"] = "/lovelace/0";
       process.env["REMOVE_GAMMA"] = "false";
       process.env["DITHER"] = "no";
-      
+
       const pages = getPagesConfig();
       expect(pages[0].removeGamma).toBe(false);
       expect(pages[0].dither).toBe(false);
@@ -186,7 +175,7 @@ describe("config", () => {
     it("should support battery webhook per page", () => {
       process.env["HA_SCREENSHOT_URL"] = "/lovelace/0";
       process.env["HA_BATTERY_WEBHOOK"] = "kindle_battery";
-      
+
       const pages = getPagesConfig();
       expect(pages[0].batteryWebHook).toBe("kindle_battery");
     });
@@ -195,16 +184,15 @@ describe("config", () => {
       process.env["HA_SCREENSHOT_URL"] = "/lovelace/0";
       process.env["HA_SCREENSHOT_URL_2"] = "/lovelace/1";
       process.env["GRAYSCALE_DEPTH"] = "4";
-      
+
       const pages = getPagesConfig();
-      expect(pages[0].grayscaleDepth).toBe("4");
-      expect(pages[1].grayscaleDepth).toBe("4");
+      expect(pages[0].grayscaleDepth).toBe(4);
+      expect(pages[1].grayscaleDepth).toBe(4);
     });
   });
 
   describe("loadConfig", () => {
     it("should load config with defaults", () => {
-      
       const config = loadConfig();
       expect(config.cronJob).toBe("* * * * *");
       expect(config.useImageMagick).toBe(false);
@@ -222,7 +210,7 @@ describe("config", () => {
     it("should load base URL and access token", () => {
       process.env["HA_BASE_URL"] = "http://ha.local:8123";
       process.env["HA_ACCESS_TOKEN"] = "test-token";
-      
+
       const config = loadConfig();
       expect(config.baseUrl).toBe("http://ha.local:8123");
       expect(config.accessToken).toBe("test-token");
@@ -230,38 +218,38 @@ describe("config", () => {
 
     it("should parse USE_IMAGE_MAGICK", () => {
       process.env["USE_IMAGE_MAGICK"] = "true";
-      
+
       expect(loadConfig().useImageMagick).toBe(true);
     });
 
     it("should parse DEBUG", () => {
       process.env["DEBUG"] = "true";
-      
+
       expect(loadConfig().debug).toBe(true);
     });
 
     it("should parse UNSAFE_IGNORE_CERTIFICATE_ERRORS", () => {
       process.env["UNSAFE_IGNORE_CERTIFICATE_ERRORS"] = "true";
-      
+
       expect(loadConfig().ignoreCertificateErrors).toBe(true);
     });
 
     it("should parse theme", () => {
       process.env["HA_THEME"] = "dark";
-      
+
       expect(loadConfig().theme).toEqual({ theme: "dark" });
     });
 
     it("should parse custom port", () => {
       process.env["PORT"] = "8080";
-      
-      expect(loadConfig().port).toBe("8080");
+
+      expect(loadConfig().port).toBe(8080);
     });
 
     it("should parse HTTP auth credentials", () => {
       process.env["HTTP_AUTH_USER"] = "admin";
       process.env["HTTP_AUTH_PASSWORD"] = "secret";
-      
+
       const config = loadConfig();
       expect(config.httpAuthUser).toBe("admin");
       expect(config.httpAuthPassword).toBe("secret");
@@ -269,25 +257,25 @@ describe("config", () => {
 
     it("should parse custom cron job", () => {
       process.env["CRON_JOB"] = "*/5 * * * *";
-      
+
       expect(loadConfig().cronJob).toBe("*/5 * * * *");
     });
 
     it("should parse rendering timeout", () => {
       process.env["RENDERING_TIMEOUT"] = "60000";
-      
-      expect(loadConfig().renderingTimeout).toBe("60000");
+
+      expect(loadConfig().renderingTimeout).toBe(60000);
     });
 
     it("should parse browser launch timeout", () => {
       process.env["BROWSER_LAUNCH_TIMEOUT"] = "60000";
-      
-      expect(loadConfig().browserLaunchTimeout).toBe("60000");
+
+      expect(loadConfig().browserLaunchTimeout).toBe(60000);
     });
 
     it("should parse language", () => {
       process.env["LANGUAGE"] = "de";
-      
+
       expect(loadConfig().language).toBe("de");
     });
   });

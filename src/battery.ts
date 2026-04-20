@@ -1,16 +1,17 @@
-const http = require("http");
-const https = require("https");
+import * as http from "node:http";
+import * as https from "node:https";
+import type { BatteryState } from "./types";
 
-function sendBatteryLevelToHomeAssistant(
-  pageIndex,
-  batteryStore,
-  batteryWebHook,
-  baseUrl,
-  ignoreCertificateErrors
-) {
-  const batteryStatus = JSON.stringify(batteryStore);
+export function sendBatteryLevelToHomeAssistant(
+  pageIndex: number,
+  batteryState: BatteryState,
+  batteryWebHook: string,
+  baseUrl: string,
+  ignoreCertificateErrors: boolean,
+): void {
+  const batteryStatus = JSON.stringify(batteryState);
   const options = {
-    method: "POST",
+    method: "POST" as const,
     headers: {
       "Content-Type": "application/json",
       "Content-Length": Buffer.byteLength(batteryStatus),
@@ -22,15 +23,13 @@ function sendBatteryLevelToHomeAssistant(
   const req = httpLib.request(url, options, (res) => {
     if (res.statusCode !== 200) {
       console.error(
-        `Update device ${pageIndex} at ${url} status ${res.statusCode}: ${res.statusMessage}`
+        `Update device ${pageIndex} at ${url} status ${res.statusCode}: ${res.statusMessage}`,
       );
     }
   });
-  req.on("error", (e) => {
+  req.on("error", (e: Error) => {
     console.error(`Update ${pageIndex} at ${url} error: ${e.message}`);
   });
   req.write(batteryStatus);
   req.end();
 }
-
-module.exports = { sendBatteryLevelToHomeAssistant };

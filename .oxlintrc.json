@@ -1,0 +1,10 @@
+{
+  "rules": {
+    "no-explicit-any": "error",
+    "no-unused-vars": "warn",
+    "eqeqeq": "error",
+    "no-console": "off",
+    "prefer-const": "error",
+    "no-var": "error"
+  }
+}

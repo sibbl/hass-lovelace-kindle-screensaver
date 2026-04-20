@@ -1,4 +1,16 @@
-FROM node:16-alpine3.17
+FROM node:22-alpine3.20 AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY tsconfig.json ./
+COPY src/ ./src/
+
+RUN npx tsc
+
+FROM node:22-alpine3.20
 
 WORKDIR /app
 
@@ -21,10 +33,10 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
 COPY package*.json ./
 COPY local.conf /etc/fonts/local.conf
 
-RUN npm ci
+RUN npm ci --omit=dev
 
-COPY *.js ./
+COPY --from=builder /app/dist/ ./dist/
 
 EXPOSE 5000
 
-CMD ["npm", "start"]
+CMD ["node", "dist/index.js"]

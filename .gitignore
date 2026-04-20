@@ -1,4 +1,5 @@
 node_modules/
+dist/
 .vscode/
 config.local.js
 config.dev.js

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateConfig } from "../../lib/app.js";
+import { validateConfig } from "../../src/validate";
 
 describe("validateConfig", () => {
   function makeValidConfig(overrides) {
@@ -51,16 +51,14 @@ describe("validateConfig", () => {
     const errors = validateConfig(
       makeValidConfig({
         baseUrl: "https://your-path-to-home-assistant:8123",
-      })
+      }),
     );
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain("placeholder text");
   });
 
   it("should return error when baseUrl contains placeholder 'your-hass-instance'", () => {
-    const errors = validateConfig(
-      makeValidConfig({ baseUrl: "https://your-hass-instance:8123" })
-    );
+    const errors = validateConfig(makeValidConfig({ baseUrl: "https://your-hass-instance:8123" }));
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain("placeholder text");
   });
@@ -69,24 +67,20 @@ describe("validateConfig", () => {
     const errors = validateConfig(
       makeValidConfig({
         baseUrl: "https://your-home-assistant.local:8123",
-      })
+      }),
     );
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain("placeholder text");
   });
 
   it("should return error when baseUrl contains 'example.com'", () => {
-    const errors = validateConfig(
-      makeValidConfig({ baseUrl: "https://example.com:8123" })
-    );
+    const errors = validateConfig(makeValidConfig({ baseUrl: "https://example.com:8123" }));
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain("placeholder text");
   });
 
   it("should return error when accessToken is missing", () => {
-    const errors = validateConfig(
-      makeValidConfig({ accessToken: undefined })
-    );
+    const errors = validateConfig(makeValidConfig({ accessToken: undefined }));
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain("HA_ACCESS_TOKEN is not configured");
   });
@@ -114,7 +108,7 @@ describe("validateConfig", () => {
             outputPath: "output/cover",
           },
         ],
-      })
+      }),
     );
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain("Invalid rotation");
@@ -132,7 +126,7 @@ describe("validateConfig", () => {
               outputPath: "output/cover",
             },
           ],
-        })
+        }),
       );
       expect(errors).toHaveLength(0);
     }
@@ -155,7 +149,7 @@ describe("validateConfig", () => {
             outputPath: "output/cover2",
           },
         ],
-      })
+      }),
     );
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain("entry 2");

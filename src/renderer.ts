@@ -1,18 +1,27 @@
-const path = require("path");
-const { promises: fs } = require("fs");
-const fsExtra = require("fs-extra");
-const { getFileHash } = require("./hash");
-const { convertImageToKindleCompatiblePngAsync } = require("./image");
-const { sendBatteryLevelToHomeAssistant } = require("./battery");
+import * as path from "node:path";
+import * as fs from "node:fs/promises";
+import * as fsExtra from "fs-extra";
+import type { Browser, Page } from "puppeteer";
+import { getFileHash } from "./hash";
+import { convertImageToKindleCompatiblePngAsync } from "./image";
+import { sendBatteryLevelToHomeAssistant } from "./battery";
+import type { AppConfig, BatteryStore, PageConfig } from "./types";
 
-async function renderUrlToImageAsync(browser, pageConfig, url, outputPath, renderingTimeout, debug) {
-  let page;
+export async function renderUrlToImageAsync(
+  browser: Browser,
+  pageConfig: PageConfig,
+  url: string,
+  outputPath: string,
+  renderingTimeout: number,
+  debug: boolean,
+): Promise<void> {
+  let page: Page | undefined;
   try {
     page = await browser.newPage();
     await page.emulateMediaFeatures([
       {
         name: "prefers-color-scheme",
-        value: `${pageConfig.prefersColorScheme}`,
+        value: pageConfig.prefersColorScheme,
       },
     ]);
 
@@ -29,13 +38,13 @@ async function renderUrlToImageAsync(browser, pageConfig, url, outputPath, rende
     }
 
     await page.setViewport(size);
-    const startTime = new Date().valueOf();
+    const startTime = Date.now();
     await page.goto(url, {
       waitUntil: ["domcontentloaded", "load", "networkidle0"],
       timeout: renderingTimeout,
     });
 
-    const navigateTimespan = new Date().valueOf() - startTime;
+    const navigateTimespan = Date.now() - startTime;
     await page.waitForSelector("home-assistant", {
       timeout: Math.max(renderingTimeout - navigateTimespan, 1000),
     });
@@ -61,22 +70,27 @@ async function renderUrlToImageAsync(browser, pageConfig, url, outputPath, rende
         ...size,
       },
     });
-  } catch (e) {
+  } catch (e: unknown) {
     console.error("Failed to render", e);
   } finally {
-    if (debug === false) {
+    if (!debug && page) {
       await page.close();
     }
   }
 }
 
-async function renderAndConvertAsync(browser, config, batteryStore) {
+export async function renderAndConvertAsync(
+  browser: Browser,
+  config: AppConfig,
+  batteryStore: BatteryStore,
+): Promise<void> {
   for (let pageIndex = 0; pageIndex < config.pages.length; pageIndex++) {
     const pageConfig = config.pages[pageIndex];
+    if (!pageConfig) continue;
+
     const pageBatteryStore = batteryStore[pageIndex];
 
     const url = `${config.baseUrl}${pageConfig.screenShotUrl}`;
-
     const outputPath = pageConfig.outputPath + "." + pageConfig.imageFormat;
     await fsExtra.ensureDir(path.dirname(outputPath));
 
@@ -89,7 +103,7 @@ async function renderAndConvertAsync(browser, config, batteryStore) {
       url,
       tempPath,
       config.renderingTimeout,
-      config.debug
+      config.debug,
     );
 
     if (!(await fsExtra.pathExists(tempPath))) {
@@ -104,7 +118,7 @@ async function renderAndConvertAsync(browser, config, batteryStore) {
       pageConfig,
       tempPath,
       finalTempPath,
-      config.useImageMagick
+      config.useImageMagick,
     );
 
     let hasChanged = true;
@@ -131,20 +145,14 @@ async function renderAndConvertAsync(browser, config, batteryStore) {
     await fs.unlink(tempPath);
     console.log(`Finished ${url}`);
 
-    if (
-      pageBatteryStore &&
-      pageBatteryStore.batteryLevel !== null &&
-      pageConfig.batteryWebHook
-    ) {
+    if (pageBatteryStore && pageBatteryStore.batteryLevel !== null && pageConfig.batteryWebHook) {
       sendBatteryLevelToHomeAssistant(
         pageIndex,
         pageBatteryStore,
         pageConfig.batteryWebHook,
-        config.baseUrl,
-        config.ignoreCertificateErrors
+        config.baseUrl ?? "",
+        config.ignoreCertificateErrors,
       );
     }
   }
 }
-
-module.exports = { renderUrlToImageAsync, renderAndConvertAsync };

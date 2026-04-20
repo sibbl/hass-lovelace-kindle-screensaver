@@ -1,6 +1,6 @@
 import { describe, it, expect, afterAll, afterEach } from "vitest";
 import http from "node:http";
-import { sendBatteryLevelToHomeAssistant } from "../../lib/battery.js";
+import { sendBatteryLevelToHomeAssistant } from "../../src/battery";
 
 describe("sendBatteryLevelToHomeAssistant", () => {
   let mockServer;
@@ -43,7 +43,7 @@ describe("sendBatteryLevelToHomeAssistant", () => {
           batteryStore,
           "kindle_battery",
           `http://127.0.0.1:${port}`,
-          false
+          false,
         );
       });
     });
@@ -73,7 +73,7 @@ describe("sendBatteryLevelToHomeAssistant", () => {
           batteryStore,
           "kindle_battery",
           `http://127.0.0.1:${port}`,
-          false
+          false,
         );
       });
     });

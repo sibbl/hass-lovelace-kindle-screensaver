@@ -36,4 +36,4 @@ bashio::log.info "Using HA_BASE_URL: ${HA_BASE_URL}"
 bashio::log.info "Starting server..."
 
 cd /app
-exec /usr/bin/npm start
+exec /usr/bin/node dist/index.js

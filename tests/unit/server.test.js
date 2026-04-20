@@ -3,7 +3,7 @@ import http from "node:http";
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import os from "node:os";
-import { createHttpServer } from "../../lib/server.js";
+import { createHttpServer } from "../../src/server";
 
 function makeRequest(server, options) {
   return new Promise((resolve, reject) => {
@@ -53,7 +53,7 @@ describe("HTTP Server", () => {
     // Create a simple test PNG (1x1 pixel)
     testImageData = Buffer.from(
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-      "base64"
+      "base64",
     );
     testImagePath = path.join(tempDir, "cover.png");
     await fs.writeFile(testImagePath, testImageData);
