@@ -39,6 +39,10 @@ Additionally, you can then later use `docker-compose pull && docker-compose up -
 
 You can then access the image by doing a simple GET request to e.g. `http://localhost:5000/` to receive the most recent image (might take up to 60s after the first run).
 
+## Troubleshooting
+
+If you encounter errors like `ERR_NAME_NOT_RESOLVED` or configuration issues, please see the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide for detailed help.
+
 Home Assistant related stuff:
 
 | Env Var                   | Sample value                          | Required | Array?\* | Description                                                                                                                                                                                          |
