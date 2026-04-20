@@ -16,6 +16,18 @@ This tool regularly takes a screenshot of a specific page of your home assistant
 
 Using my [own Kindle 4 setup guide](https://github.com/sibbl/hass-lovelace-kindle-4) or the [online screensaver extension](https://www.mobileread.com/forums/showthread.php?t=236104) for any jailbroken Kindle, this image can be regularly polled from your device so you can use it as a weather station, a display for next public transport departures etc.
 
+### Energy-efficient image updates
+
+The tool compares each new screenshot with the previous one and only updates the served image when changes are detected. This keeps the `Last-Modified` timestamp and `ETag` header stable, allowing e-ink clients to skip unnecessary downloads and screen refreshes.
+
+You can use a lightweight `HEAD` request to check for changes without downloading the image:
+
+```bash
+curl -I http://localhost:5000/
+```
+
+Compare the returned `ETag` or `Last-Modified` with your last known value — only `GET` the image if it changed.
+
 ## Usage
 
 You may simple set up the [sibbl/hass-lovelace-kindle-screensaver](https://hub.docker.com/r/sibbl/hass-lovelace-kindle-screensaver) docker container. The container exposes a single port (5000 by default).
