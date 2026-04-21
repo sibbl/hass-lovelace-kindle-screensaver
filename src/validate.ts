@@ -7,6 +7,10 @@ const PLACEHOLDER_PATTERNS = [
   "example.com",
 ] as const;
 
+function normalizeOptionalConfigValue(value: string | null | undefined): string {
+  return value?.trim() ?? "";
+}
+
 export function validateConfig(config: AppConfig): string[] {
   const errors: string[] = [];
 
@@ -31,6 +35,12 @@ export function validateConfig(config: AppConfig): string[] {
   if (!config.accessToken || config.accessToken.trim() === "") {
     errors.push("ERROR: HA_ACCESS_TOKEN is not configured.");
     return errors;
+  }
+
+  const httpAuthUser = normalizeOptionalConfigValue(config.httpAuthUser);
+  const httpAuthPassword = normalizeOptionalConfigValue(config.httpAuthPassword);
+  if ((httpAuthUser === "") !== (httpAuthPassword === "")) {
+    errors.push("ERROR: HTTP_AUTH_USER and HTTP_AUTH_PASSWORD must be set together.");
   }
 
   for (let i = 0; i < config.pages.length; i++) {

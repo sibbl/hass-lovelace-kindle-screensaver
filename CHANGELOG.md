@@ -1,4 +1,26 @@
+<!-- markdownlint-disable MD024 -->
+
 # Changelog
+
+## 1.1.0
+
+### Added
+
+* Add explicit `HA_THEME` support to control the Home Assistant theme used for rendering
+* Add optional HTTP Basic Auth for the generated image endpoint via `HTTP_AUTH_USER` and `HTTP_AUTH_PASSWORD`
+* Add early configuration validation to catch invalid first-run setups before rendering starts
+* Add support for energy-efficient image updates with SHA-256 change detection, metadata stripping, `ETag`/`Last-Modified` handling, and `HEAD` request support
+
+### Changed
+
+* Migrate browser automation from Puppeteer to Playwright and use isolated browser contexts for rendering
+* Migrate the codebase from JavaScript to strict TypeScript and remove the legacy JS source layout
+* Upgrade the Docker/runtime stack to Node.js 24 on Alpine and configure Playwright to use system Chromium
+
+### Fixed
+
+* Ignore favicon requests and start the HTTP server earlier during startup
+* Avoid unnecessary image rewrites when the rendered output has not changed and guard against missing screenshot files after failed renders
 
 ## 1.0.15
 

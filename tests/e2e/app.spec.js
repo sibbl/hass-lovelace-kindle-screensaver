@@ -10,21 +10,116 @@ import { test, expect } from "@playwright/test";
  */
 
 const APP_URL = process.env.APP_URL || "http://localhost:15000";
+const HTTP_AUTH_USER = process.env.HTTP_AUTH_USER || "e2e-user";
+const HTTP_AUTH_PASSWORD = process.env.HTTP_AUTH_PASSWORD || "e2e-password";
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function createAuthorizationHeader(user = HTTP_AUTH_USER, password = HTTP_AUTH_PASSWORD) {
+  const credentials = `${user}:${password}`;
+  return `Basic ${Buffer.from(credentials).toString("base64")}`;
+}
+
+function withAuth(options = {}) {
+  return {
+    ...options,
+    headers: {
+      ...options.headers,
+      Authorization: createAuthorizationHeader(),
+    },
+  };
+}
+
+async function waitForAppServer(request) {
+  let lastError;
+  for (let i = 0; i < 30; i++) {
+    try {
+      const response = await request.get(`${APP_URL}/favicon.ico`, {
+        failOnStatusCode: false,
+      });
+      if (response.status() === 204) {
+        return;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+    await sleep(1000);
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  throw new Error(`App server at ${APP_URL} did not become ready in time`);
+}
+
+async function waitForRenderedImage(request) {
+  await waitForAppServer(request);
+
+  let response;
+  let lastError;
+  for (let i = 0; i < 30; i++) {
+    try {
+      response = await request.get(APP_URL, withAuth({ failOnStatusCode: false }));
+      if (response.status() === 200) {
+        return response;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+    await sleep(5000);
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  return response;
+}
+
+test.describe("HTTP basic auth", () => {
+  test("GET / without auth returns 401", async ({ request }) => {
+    await waitForAppServer(request);
+
+    const response = await request.get(APP_URL, {
+      failOnStatusCode: false,
+    });
+
+    expect(response.status()).toBe(401);
+    expect(response.headers()["www-authenticate"]).toContain("Basic");
+  });
+
+  test("GET / with invalid auth returns 401", async ({ request }) => {
+    await waitForAppServer(request);
+
+    const response = await request.get(APP_URL, {
+      failOnStatusCode: false,
+      headers: {
+        Authorization: createAuthorizationHeader(HTTP_AUTH_USER, "wrong-password"),
+      },
+    });
+
+    expect(response.status()).toBe(401);
+    expect(response.headers()["www-authenticate"]).toContain("Basic");
+  });
+
+  test("HEAD / with valid auth returns headers only", async ({ request }) => {
+    await waitForRenderedImage(request);
+
+    const response = await request.head(APP_URL, withAuth());
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toBe("image/png");
+    expect(response.headers()["etag"]).toBeTruthy();
+    expect(response.headers()["last-modified"]).toBeTruthy();
+    expect(response.headers()["cache-control"]).toBe("no-cache");
+  });
+});
 
 test.describe("Image serving", () => {
   test("GET / returns a valid image", async ({ request }) => {
-    // Wait for the first render to complete (poll with retries)
-    let response;
-    let _lastError;
-    for (let i = 0; i < 30; i++) {
-      try {
-        response = await request.get(APP_URL);
-        if (response.status() === 200) break;
-      } catch (e) {
-        _lastError = e;
-      }
-      await new Promise((r) => setTimeout(r, 5000));
-    }
+    const response = await waitForRenderedImage(request);
 
     expect(response).toBeDefined();
     expect(response.status()).toBe(200);
@@ -37,8 +132,8 @@ test.describe("Image serving", () => {
   });
 
   test("GET /1 returns the same image as GET /", async ({ request }) => {
-    const res1 = await request.get(APP_URL);
-    const res2 = await request.get(`${APP_URL}/1`);
+    const res1 = await waitForRenderedImage(request);
+    const res2 = await request.get(`${APP_URL}/1`, withAuth());
 
     expect(res1.status()).toBe(200);
     expect(res2.status()).toBe(200);
@@ -49,7 +144,9 @@ test.describe("Image serving", () => {
   });
 
   test("HEAD / returns headers without body", async ({ request }) => {
-    const response = await request.head(APP_URL);
+    await waitForRenderedImage(request);
+
+    const response = await request.head(APP_URL, withAuth());
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toBe("image/png");
     expect(response.headers()["etag"]).toBeTruthy();
@@ -58,7 +155,7 @@ test.describe("Image serving", () => {
   });
 
   test("response includes proper caching headers", async ({ request }) => {
-    const response = await request.get(APP_URL);
+    const response = await waitForRenderedImage(request);
     expect(response.status()).toBe(200);
 
     const etag = response.headers()["etag"];
@@ -73,42 +170,46 @@ test.describe("Image serving", () => {
 
 test.describe("Invalid requests", () => {
   test("GET /0 returns 400", async ({ request }) => {
-    const response = await request.get(`${APP_URL}/0`, {
-      failOnStatusCode: false,
-    });
+    await waitForRenderedImage(request);
+
+    const response = await request.get(`${APP_URL}/0`, withAuth({ failOnStatusCode: false }));
     expect(response.status()).toBe(400);
   });
 
   test("GET /99 returns 400", async ({ request }) => {
-    const response = await request.get(`${APP_URL}/99`, {
-      failOnStatusCode: false,
-    });
+    await waitForRenderedImage(request);
+
+    const response = await request.get(`${APP_URL}/99`, withAuth({ failOnStatusCode: false }));
     expect(response.status()).toBe(400);
   });
 
   test("GET /abc returns 400", async ({ request }) => {
-    const response = await request.get(`${APP_URL}/abc`, {
-      failOnStatusCode: false,
-    });
+    await waitForRenderedImage(request);
+
+    const response = await request.get(`${APP_URL}/abc`, withAuth({ failOnStatusCode: false }));
     expect(response.status()).toBe(400);
   });
 });
 
 test.describe("Battery tracking", () => {
   test("accepts battery level parameter", async ({ request }) => {
-    const response = await request.get(`${APP_URL}/?batteryLevel=80&isCharging=No`);
+    await waitForRenderedImage(request);
+
+    const response = await request.get(`${APP_URL}/?batteryLevel=80&isCharging=No`, withAuth());
     expect(response.status()).toBe(200);
   });
 
   test("accepts charging status", async ({ request }) => {
-    const response = await request.get(`${APP_URL}/?batteryLevel=50&isCharging=Yes`);
+    await waitForRenderedImage(request);
+
+    const response = await request.get(`${APP_URL}/?batteryLevel=50&isCharging=Yes`, withAuth());
     expect(response.status()).toBe(200);
   });
 });
 
 test.describe("Image content", () => {
   test("served image is a valid PNG", async ({ request }) => {
-    const response = await request.get(APP_URL);
+    const response = await waitForRenderedImage(request);
     expect(response.status()).toBe(200);
     const body = await response.body();
     // PNG magic bytes: 0x89 0x50 0x4E 0x47
@@ -119,8 +220,8 @@ test.describe("Image content", () => {
   });
 
   test("subsequent requests return same ETag when unchanged", async ({ request }) => {
-    const res1 = await request.get(APP_URL);
-    const res2 = await request.get(APP_URL);
+    const res1 = await waitForRenderedImage(request);
+    const res2 = await request.get(APP_URL, withAuth());
     expect(res1.headers()["etag"]).toBe(res2.headers()["etag"]);
   });
 });

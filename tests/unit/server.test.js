@@ -254,6 +254,12 @@ describe("HTTP Server", () => {
   describe("basic auth", () => {
     let server;
 
+    beforeEach(async () => {
+      if (server) {
+        await closeServer(server);
+      }
+    });
+
     afterAll(async () => {
       if (server) {
         await closeServer(server);
@@ -291,6 +297,20 @@ describe("HTTP Server", () => {
       expect(res.statusCode).toBe(200);
     });
 
+    it("should allow favicon requests without credentials even when auth is enabled", async () => {
+      const config = makeConfig({
+        httpAuthUser: "admin",
+        httpAuthPassword: "secret",
+      });
+      const batteryStore = {};
+      server = createHttpServer(config, batteryStore);
+      await listenOnRandomPort(server);
+
+      const res = await makeRequest(server, { path: "/favicon.ico" });
+      expect(res.statusCode).toBe(204);
+      expect(res.body.length).toBe(0);
+    });
+
     it("should reject invalid credentials", async () => {
       const config = makeConfig({
         httpAuthUser: "admin",
@@ -323,6 +343,26 @@ describe("HTTP Server", () => {
         headers: { Authorization: `Basic ${auth}` },
       });
       expect(res.statusCode).toBe(200);
+    });
+
+    it("should track battery data on authenticated requests", async () => {
+      const config = makeConfig({
+        httpAuthUser: "admin",
+        httpAuthPassword: "secret",
+      });
+      const batteryStore = {};
+      server = createHttpServer(config, batteryStore);
+      await listenOnRandomPort(server);
+
+      const auth = Buffer.from("admin:secret").toString("base64");
+      const res = await makeRequest(server, {
+        path: "/?batteryLevel=62&isCharging=Yes",
+        headers: { Authorization: `Basic ${auth}` },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(batteryStore[0]).toBeDefined();
+      expect(batteryStore[0].batteryLevel).toBe(62);
+      expect(batteryStore[0].isCharging).toBe(true);
     });
 
     it("should not require auth when not configured", async () => {

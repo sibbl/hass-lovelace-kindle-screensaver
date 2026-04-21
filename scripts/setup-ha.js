@@ -10,9 +10,10 @@
  * 4. Writes the token and base URL to .env.test
  */
 
-const http = require("http");
-const fs = require("fs");
-const path = require("path");
+const crypto = require("node:crypto");
+const http = require("node:http");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const HA_URL = process.env.HA_URL || "http://localhost:18123";
 const CLIENT_ID = `${HA_URL}/`;
@@ -80,11 +81,12 @@ async function checkOnboardingNeeded() {
 
 async function createUser() {
   console.log("Creating onboarding user...");
+  const onboardingPassword = crypto.randomBytes(18).toString("base64url");
   const body = JSON.stringify({
     client_id: CLIENT_ID,
     name: "Test User",
     username: "test",
-    password: "testpassword123",
+    password: onboardingPassword,
     language: "en",
   });
   const res = await httpRequest(

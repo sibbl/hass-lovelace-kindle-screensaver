@@ -36,7 +36,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.HA_ADDON
-          build-args: BUILD_FROM=homeassistant/amd64-base:latest
+          build-args: BUILD_FROM=homeassistant/amd64-base@sha256:6a5e6070491aa237e66b747c2618b8977ee2c893fb67919777d33bcbd4a9a673
           platforms: linux/amd64
           push: true
           tags: |
@@ -47,7 +47,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.HA_ADDON
-          build-args: BUILD_FROM=homeassistant/aarch64-base:latest
+          build-args: BUILD_FROM=homeassistant/aarch64-base@sha256:4eb2e2e14966353110cc82fab75c6a96fb04ca87550805e95f8d2eb285449344
           platforms: linux/arm64/v8
           push: true
           tags: |
@@ -59,7 +59,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.HA_ADDON
-          build-args: BUILD_FROM=homeassistant/armv7-base:latest
+          build-args: BUILD_FROM=homeassistant/armv7-base@sha256:80d97be868491431016c03d4c375ab13fcf8d3ca725954b967dbd3aa2854e177
           platforms: linux/arm/v7
           push: true
           tags: |

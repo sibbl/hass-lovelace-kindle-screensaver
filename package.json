@@ -1,6 +1,6 @@
 {
   "name": "hass-lovelace-kindle-screensaver",
-  "version": "1.0.15",
+  "version": "1.1.0",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
@@ -15,22 +15,21 @@
     "test:watch": "vitest",
     "test:unit": "vitest run --config vitest.config.js",
     "test:e2e": "playwright test",
-    "test:e2e:setup": "docker compose -f docker-compose.test.yml up -d --build --wait",
+    "test:e2e:setup": "touch .env.test && docker compose -f docker-compose.test.yml up -d --build homeassistant --wait && node scripts/setup-ha.js && docker compose -f docker-compose.test.yml up -d --build app --wait",
     "test:e2e:teardown": "docker compose -f docker-compose.test.yml down -v",
     "prepare": "husky"
   },
   "author": "sibbl",
   "license": "MIT",
   "dependencies": {
-    "cron": "^1.8.2",
+    "cron": "^4.4.0",
     "dotenv": "^17.4.2",
     "fs-extra": "^10.0.0",
-    "gm": "^1.23.1",
+    "gm": "^1.25.1",
     "playwright": "^1.59.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
-    "@types/cron": "^2.0.1",
     "@types/fs-extra": "^11.0.4",
     "@types/gm": "^1.25.4",
     "@types/node": "^25.6.0",

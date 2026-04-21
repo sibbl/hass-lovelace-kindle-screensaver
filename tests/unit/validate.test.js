@@ -1,23 +1,25 @@
 import { describe, it, expect } from "vitest";
 import { validateConfig } from "../../src/validate";
 
-describe("validateConfig", () => {
-  function makeValidConfig(overrides) {
-    return {
-      baseUrl: "http://ha.local:8123",
-      accessToken: "test-token-abc123",
-      pages: [
-        {
-          screenShotUrl: "/lovelace/0",
-          rotation: 0,
-          imageFormat: "png",
-          outputPath: "output/cover",
-        },
-      ],
-      ...overrides,
-    };
-  }
+function makeValidConfig(overrides) {
+  return {
+    baseUrl: "http://ha.local:8123",
+    accessToken: "test-token-abc123",
+    httpAuthUser: null,
+    httpAuthPassword: null,
+    pages: [
+      {
+        screenShotUrl: "/lovelace/0",
+        rotation: 0,
+        imageFormat: "png",
+        outputPath: "output/cover",
+      },
+    ],
+    ...overrides,
+  };
+}
 
+describe("validateConfig", () => {
   it("should return no errors for valid config", () => {
     const errors = validateConfig(makeValidConfig());
     expect(errors).toHaveLength(0);
@@ -95,6 +97,49 @@ describe("validateConfig", () => {
     const errors = validateConfig(makeValidConfig({ accessToken: "   " }));
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain("HA_ACCESS_TOKEN is not configured");
+  });
+
+  it("should allow basic auth when both credentials are configured", () => {
+    const errors = validateConfig(
+      makeValidConfig({
+        httpAuthUser: "kindle",
+        httpAuthPassword: "secret",
+      }),
+    );
+    expect(errors).toHaveLength(0);
+  });
+
+  it("should return error when only HTTP_AUTH_USER is set", () => {
+    const errors = validateConfig(
+      makeValidConfig({
+        httpAuthUser: "kindle",
+        httpAuthPassword: null,
+      }),
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("HTTP_AUTH_USER and HTTP_AUTH_PASSWORD must be set together");
+  });
+
+  it("should return error when only HTTP_AUTH_PASSWORD is set", () => {
+    const errors = validateConfig(
+      makeValidConfig({
+        httpAuthUser: null,
+        httpAuthPassword: "secret",
+      }),
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("HTTP_AUTH_USER and HTTP_AUTH_PASSWORD must be set together");
+  });
+
+  it("should treat blank auth values as unset during validation", () => {
+    const errors = validateConfig(
+      makeValidConfig({
+        httpAuthUser: "   ",
+        httpAuthPassword: "secret",
+      }),
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("HTTP_AUTH_USER and HTTP_AUTH_PASSWORD must be set together");
   });
 
   it("should return error for invalid rotation value", () => {

@@ -75,21 +75,15 @@ async function main(): Promise<void> {
       ignoreHTTPSErrors: config.ignoreCertificateErrors,
     });
 
-    console.log(`Visiting '${config.baseUrl}' to login...`);
-    const page = await context.newPage();
-    await page.goto(config.baseUrl ?? "", {
-      timeout: config.renderingTimeout,
-    });
-
     const hassTokens = {
       hassUrl: config.baseUrl,
       access_token: config.accessToken,
       token_type: "Bearer",
     };
 
-    console.log("Adding authentication entry to browser's local storage...");
-    await page.evaluate(
-      ([tokensJson, languageJson, themeJson]: [string, string, string | null]) => {
+    console.log("Adding authentication entry to browser context local storage...");
+    await context.addInitScript(
+      ([tokensJson, languageJson, themeJson]: readonly [string, string, string | null]) => {
         localStorage.setItem("hassTokens", tokensJson);
         localStorage.setItem("selectedLanguage", languageJson);
         if (themeJson) {
@@ -100,8 +94,14 @@ async function main(): Promise<void> {
         JSON.stringify(hassTokens),
         JSON.stringify(config.language),
         config.theme ? JSON.stringify(config.theme) : null,
-      ] as [string, string, string | null],
+      ] as const,
     );
+
+    console.log(`Visiting '${config.baseUrl}' to login...`);
+    const page = await context.newPage();
+    await page.goto(config.baseUrl ?? "", {
+      timeout: config.renderingTimeout,
+    });
 
     await page.close();
 
@@ -114,14 +114,14 @@ async function main(): Promise<void> {
       console.log("Starting first render...");
       await renderAndConvertAsync(context, config, batteryStore);
       console.log("Starting rendering cronjob...");
-      const cronJob = new CronJob({
+      const cronJob = CronJob.from({
         cronTime: config.cronJob,
         onTick: () => {
           void renderAndConvertAsync(context, config, batteryStore);
         },
         start: true,
       });
-      console.log(`Cron job started: ${cronJob.running ? "running" : "stopped"}`);
+      console.log(`Cron job started: ${cronJob.isActive ? "running" : "stopped"}`);
     }
   } catch (error: unknown) {
     if (httpServer.listening) {

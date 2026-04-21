@@ -1,16 +1,16 @@
-FROM node:24-alpine3.21 AS builder
+FROM node:24-alpine3.22 AS builder
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci
+RUN HUSKY=0 PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci
 
 COPY tsconfig.json ./
 COPY src/ ./src/
 
 RUN npx tsc
 
-FROM node:24-alpine3.21
+FROM node:24-alpine3.22
 
 WORKDIR /app
 
@@ -33,7 +33,7 @@ ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
 COPY package*.json ./
 COPY local.conf /etc/fonts/local.conf
 
-RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci --omit=dev
+RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci --omit=dev --ignore-scripts
 
 COPY --from=builder /app/dist/ ./dist/
 

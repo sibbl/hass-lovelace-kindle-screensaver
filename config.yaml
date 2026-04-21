@@ -1,5 +1,5 @@
 name: Lovelace Kindle Screensaver
-version: 1.0.15
+version: 1.1.0
 slug: kindle-screensaver
 description: This tool can be used to display a Lovelace view of your Home Assistant instance on a jailbroken Kindle device. It regularly takes a screenshot which can be polled and used as a screensaver image of the online screensaver plugin.
 startup: application
@@ -25,6 +25,9 @@ options:
   HA_BASE_URL: 'https://your-path-to-home-assistant:8123'
   HA_SCREENSHOT_URL: '/lovelace/0'
   HA_ACCESS_TOKEN: ''
+  HA_THEME: ''
+  HTTP_AUTH_USER: ''
+  HTTP_AUTH_PASSWORD: ''
   LANGUAGE: 'en'
   CRON_JOB: '* * * * *'
   RENDERING_TIMEOUT: '60000'
@@ -38,8 +41,13 @@ options:
   IMAGE_FORMAT: 'png'
   COLOR_MODE: 'GrayScale'
   REMOVE_GAMMA: true
+  DITHER: false
+  BLACK_LEVEL: '0%'
+  WHITE_LEVEL: '100%'
   PREFERS_COLOR_SCHEME: 'light'
   HA_BATTERY_WEBHOOK: ''
+  DEBUG: false
+  UNSAFE_IGNORE_CERTIFICATE_ERRORS: false
   SATURATION: 1
   CONTRAST: 1
   ADDITIONAL_ENV_VARS: []
@@ -47,6 +55,9 @@ schema:
   HA_BASE_URL: "url"
   HA_SCREENSHOT_URL: "str"
   HA_ACCESS_TOKEN: "password"
+  HA_THEME: "str?"
+  HTTP_AUTH_USER: "str?"
+  HTTP_AUTH_PASSWORD: "password?"
   LANGUAGE: "str?"
   CRON_JOB: "str?"
   RENDERING_TIMEOUT: "int?"
@@ -60,12 +71,19 @@ schema:
   IMAGE_FORMAT: "list(png|jpeg|bmp)?"
   COLOR_MODE: "list(GrayScale|TrueColor)?"
   REMOVE_GAMMA: "bool?"
+  DITHER: "bool?"
+  BLACK_LEVEL: "str?"
+  WHITE_LEVEL: "str?"
   PREFERS_COLOR_SCHEME: "list(light|dark)?"
   HA_BATTERY_WEBHOOK: "str?"
-  SATURATION: "int?"
-  CONTRAST: "int?"
+  DEBUG: "bool?"
+  UNSAFE_IGNORE_CERTIFICATE_ERRORS: "bool?"
+  SATURATION: "float?"
+  CONTRAST: "float?"
   ADDITIONAL_ENV_VARS:
     - name: match(^[A-Z0-9_]+$)
       value: str
 environment:
-  output_path: "/output/cover"
+  PORT: "5000"
+  OUTPUT_PATH: "/output/cover"
+  USE_IMAGE_MAGICK: "true"

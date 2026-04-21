@@ -32,12 +32,14 @@ Compare the returned `ETag` or `Last-Modified` with your last known value — on
 
 You may simple set up the [sibbl/hass-lovelace-kindle-screensaver](https://hub.docker.com/r/sibbl/hass-lovelace-kindle-screensaver) docker container. The container exposes a single port (5000 by default).
 
-Another way is to use Hassio Addons where you have to add this repository or click [here](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fsibbl%2Fhass-lovelace-kindle-screensaver). Then Reload and you should see options to the Lovelace Kindle Screensaver Addon
+Another way is to use Hassio Addons where you have to add this repository or use the [Home Assistant add-on repository link](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fsibbl%2Fhass-lovelace-kindle-screensaver). Then Reload and you should see options to the Lovelace Kindle Screensaver Addon
 
 I recommend simply using the `docker-compose.yml` file inside this repository, configure everything in there and run `docker-compose up -d` within the file's directory. This will pull the docker image, create the container with all environment variables from the file and run it in detached mode (using `-d`, so it continues running even when you exit your shell/bash/ssh connection).
 Additionally, you can then later use `docker-compose pull && docker-compose up -d` to update the image in case you want to update it.
 
 You can then access the image by doing a simple GET request to e.g. `http://localhost:5000/` to receive the most recent image (might take up to 60s after the first run).
+
+If you want to protect the generated image endpoint, set both `HTTP_AUTH_USER` and `HTTP_AUTH_PASSWORD` to enable optional HTTP Basic Auth. Leave both unset to keep the endpoint public. The application validates that both values are provided together.
 
 ## Troubleshooting
 
@@ -45,49 +47,62 @@ If you encounter errors like `ERR_NAME_NOT_RESOLVED` or configuration issues, pl
 
 Home Assistant related stuff:
 
-| Env Var                   | Sample value                          | Required | Array?\* | Description                                                                                                                                                                                          |
-|---------------------------|---------------------------------------| -------- | -------- |------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `HA_BASE_URL`             | `https://your-hass-instance.com:8123` | yes      | no       | Base URL of your home assistant instance                                                                                                                                                             |
-| `HA_SCREENSHOT_URL`       | `/lovelace/screensaver?kiosk`         | yes      | yes      | Relative URL to take screenshot of (btw, the `?kiosk` parameter hides the nav bar using the [kiosk mode](https://github.com/NemesisRE/kiosk-mode) project)                                           |
-| `HA_ACCESS_TOKEN`         | `eyJ0...`                             | yes      | no       | Long-lived access token from Home Assistant, see [official docs](https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token)                                                        |
-| `HA_BATTERY_WEBHOOK`      | `set_kindle_battery_level`            | no       | yes      | Webhook definied in HA which receives `batteryLevel` (number between 0-100) and `isCharging` (boolean) as JSON                                                                                       |
-| `HA_THEME`                | `eink`                                | no       | no       | Name of the HA theme to use for rendering. Must be installed in your HA instance. When not set, HA's default theme is used.                                                                           |
-| `LANGUAGE`                | `en`                                  | no       | no       | Language to set in browser and home assistant                                                                                                                                                        |
-| `PREFERS_COLOR_SCHEME`    | `light`                               | no       | no       | Enable browser dark mode, use `light` or `dark`.                                                                                                                                                     |
-| `CRON_JOB`                | `* * * * *`                           | no       | no       | How often to take screenshot                                                                                                                                                                         |
-| `RENDERING_TIMEOUT`       | `10000`                               | no       | no       | Timeout of render process, helpful if your HASS instance might be down                                                                                                                               |
-| `RENDERING_DELAY`         | `0`                                   | no       | yes      | how long to wait between navigating to the page and taking the screenshot, in milliseconds                                                                                                           |
-| `RENDERING_SCREEN_HEIGHT` | `800`                                 | no       | yes      | Height of your kindle screen resolution                                                                                                                                                              |
-| `RENDERING_SCREEN_WIDTH`  | `600`                                 | no       | yes      | Width of your kindle screen resolution                                                                                                                                                               |
-| `BROWSER_LAUNCH_TIMEOUT`  | `30000`                               | no       | no       | Timeout for browser launch, helpful if your HASS instance is slow                                                                                                                                    |
-| `ROTATION`                | `0`                                   | no       | yes      | Rotation of image in degrees, e.g. use 90 or 270 to render in landscape                                                                                                                              |
-| `SCALING`                 | `1`                                   | no       | yes      | Scaling factor, e.g. `1.5` to zoom in or `0.75` to zoom out                                                                                                                                          |
-| `GRAYSCALE_DEPTH`         | `8`                                   | no       | yes      | Grayscale bit depth your kindle supports                                                                                                                                                             |
-| `COLOR_MODE`              | `GrayScale`                           | no       | yes      | ColorMode to use, ex: `GrayScale`, or `TrueColor`.                                                                                                                                                   |
-| `IMAGE_FORMAT`            | `png`                                 | no       | no       | Format for the generated images. Acceptable values are `png` or `jpeg`.                                                                                                                              |
-| `DITHER`                  | `false`                               | no       | yes      | Apply a dither to the images.                                                                                                                                                                        |
-| `REMOVE_GAMMA`            | `true`                                | no       | no       | Remove gamma correction from image. Computer images are normally gamma corrected since monitors expect gamma corrected data, however some E-Ink displays expect images not to have gamma correction. |
-| SATURATION              | 2                                   | no       | no       | Saturation level multiplier, e.g. 2 doubles the saturation |
-| CONTRAST                | 2                                   | no       | no       | Contrast level multiplier, e.g. 2 doubles the contrast |
-| BLACK_LEVEL             | 30%                                 | no       | no       | Black point as percentage of MaxRGB, i.e. crushes blacks below specified level |
-| WHITE_LEVEL             | 90%                                 | no       | no       | White point as percentage of MaxRGB, i.e. crushes whites above specified level |
+<!-- markdownlint-disable MD060 -->
+
+| Env Var                            | Sample value                          | Required | Array?\* | Description                                                                                                                                                                                                     |
+|------------------------------------|---------------------------------------| -------- | -------- |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `HA_BASE_URL`                      | `https://your-hass-instance.com:8123` | yes      | no       | Base URL of your Home Assistant instance.                                                                                                                                                                        |
+| `HA_SCREENSHOT_URL`                | `/lovelace/screensaver?kiosk`         | yes      | yes      | Relative URL to take a screenshot of. The `?kiosk` parameter hides the nav bar when you use the [kiosk mode](https://github.com/NemesisRE/kiosk-mode) project.                                             |
+| `HA_ACCESS_TOKEN`                  | `eyJ0...`                             | yes      | no       | Long-lived access token from Home Assistant, see the [official docs](https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token).                                                          |
+| `HA_BATTERY_WEBHOOK`               | `set_kindle_battery_level`            | no       | yes      | Webhook defined in Home Assistant that receives `batteryLevel` (0-100) and `isCharging` (boolean) as JSON.                                                                                                    |
+| `HA_THEME`                         | `eink`                                | no       | no       | Name of the Home Assistant theme to use for rendering. When not set, HA's default theme is used.                                                                                                              |
+| `HTTP_AUTH_USER`                   | `kindle`                              | no       | no       | Optional basic auth username for the image endpoint. Set it together with `HTTP_AUTH_PASSWORD`, or leave both unset.                                                                                          |
+| `HTTP_AUTH_PASSWORD`               | `secret123`                           | no       | no       | Optional basic auth password for the image endpoint. Set it together with `HTTP_AUTH_USER`, or leave both unset.                                                                                              |
+| `LANGUAGE`                         | `en`                                  | no       | no       | Language to set in the browser and Home Assistant UI.                                                                                                                                                            |
+| `CRON_JOB`                         | `* * * * *`                           | no       | no       | How often to take a screenshot.                                                                                                                                                                                  |
+| `RENDERING_TIMEOUT`                | `10000`                               | no       | no       | Timeout of the render process in milliseconds; helpful if your HA instance might be down.                                                                                                                       |
+| `BROWSER_LAUNCH_TIMEOUT`           | `30000`                               | no       | no       | Timeout for browser launch in milliseconds; helpful if your HA instance is slow.                                                                                                                                |
+| `RENDERING_DELAY`                  | `0`                                   | no       | yes      | How long to wait between navigating to the page and taking the screenshot, in milliseconds.                                                                                                                     |
+| `RENDERING_SCREEN_HEIGHT`          | `800`                                 | no       | yes      | Height of your Kindle screen resolution.                                                                                                                                                                         |
+| `RENDERING_SCREEN_WIDTH`           | `600`                                 | no       | yes      | Width of your Kindle screen resolution.                                                                                                                                                                          |
+| `ROTATION`                         | `0`                                   | no       | yes      | Rotation of the image in degrees; use `90` or `270` to render in landscape.                                                                                                                                     |
+| `SCALING`                          | `1`                                   | no       | yes      | Scaling factor, for example `1.5` to zoom in or `0.75` to zoom out.                                                                                                                                              |
+| `GRAYSCALE_DEPTH`                  | `8`                                   | no       | yes      | Grayscale bit depth your Kindle supports.                                                                                                                                                                        |
+| `IMAGE_FORMAT`                     | `png`                                 | no       | yes      | Format for the generated image. Accepted values are `png`, `jpeg`, or `bmp`.                                                                                                                                     |
+| `OUTPUT_PATH`                      | `./output/cover`                      | no       | yes      | Destination path without extension. The Home Assistant add-on manages the base value as `/output/cover`; override `OUTPUT_PATH` or `OUTPUT_PATH_n` only for advanced setups.                                 |
+| `COLOR_MODE`                       | `GrayScale`                           | no       | yes      | Color mode to use, for example `GrayScale` or `TrueColor`.                                                                                                                                                       |
+| `PREFERS_COLOR_SCHEME`             | `light`                               | no       | yes      | Browser color-scheme preference; use `light` or `dark`.                                                                                                                                                          |
+| `REMOVE_GAMMA`                     | `true`                                | no       | yes      | Remove gamma correction from the image. Some E-Ink displays expect images without gamma correction.                                                                                                             |
+| `DITHER`                           | `false`                               | no       | yes      | Apply dithering to the image.                                                                                                                                                                                     |
+| `BLACK_LEVEL`                      | `30%`                                 | no       | yes      | Black point as a percentage of MaxRGB; crushes blacks below the specified level.                                                                                                                                 |
+| `WHITE_LEVEL`                      | `90%`                                 | no       | yes      | White point as a percentage of MaxRGB; crushes whites above the specified level.                                                                                                                                 |
+| `SATURATION`                       | `2`                                   | no       | yes      | Saturation multiplier, for example `1.5` increases saturation by 50%.                                                                                                                                            |
+| `CONTRAST`                         | `2`                                   | no       | yes      | Contrast multiplier, for example `1.5` increases contrast by 50%.                                                                                                                                                 |
+| `DEBUG`                            | `true`                                | no       | no       | Launch Chromium in non-headless mode for debugging. This is mainly useful for local troubleshooting.                                                                                                            |
+| `UNSAFE_IGNORE_CERTIFICATE_ERRORS` | `true`                                | no       | no       | Ignore certificate errors such as self-signed certificates. Use at your own risk.                                                                                                                                |
+
+<!-- markdownlint-enable MD060 -->
 
 **\* Array** means that you can set `HA_SCREENSHOT_URL_2`, `HA_SCREENSHOT_URL_3`, ... `HA_SCREENSHOT_URL_n` to render multiple pages within the same instance.
-If you use `HA_SCREENSHOT_URL_2`, you can also set `ROTATION_2=180`. If there is no `ROTATION_n` set, then `ROTATION` will be used as a fallback.
-You can access these additional images by making GET Requests `http://localhost:5000/2`, `http://localhost:5000/3` etc.
+Pages are discovered sequentially, so `HA_SCREENSHOT_URL_2` must exist before `HA_SCREENSHOT_URL_3` will be used.
+Any page-scoped variable in the table can also be overridden with the same suffix, for example `ROTATION_2=180`, `IMAGE_FORMAT_2=bmp`, or `HA_BATTERY_WEBHOOK_2=set_kindle_battery_level`.
+If a page-scoped `*_n` override is missing, the unsuffixed value is used as the fallback for that page. `OUTPUT_PATH` is the exception: if `OUTPUT_PATH_n` is not set, the app falls back to `output/cover_n`.
+You can access these additional images by making GET requests to `http://localhost:5000/2`, `http://localhost:5000/3`, and so on.
 
-To make us of the array feature in the Home Assistant Add-On, you may use `ADDITIONAL_ENV_VARS`. It expects a format like this to set any additional environment variable:
+To make use of the array feature in the Home Assistant Add-on, use `ADDITIONAL_ENV_VARS`. The add-on UI covers the unsuffixed base options from `config.yaml`; `ADDITIONAL_ENV_VARS` is where you add suffixed overrides such as `HA_SCREENSHOT_URL_2`, `ROTATION_2`, `IMAGE_FORMAT_2`, or `OUTPUT_PATH_2`.
 
 ```yaml
 - name: "HA_SCREENSHOT_URL_2"
   value: "/lovelace/second-page"
 - name: "ROTATION_2"
   value: "180"
+- name: "OUTPUT_PATH_2"
+  value: "/output/cover_2"
 - name: "HA_SCREENSHOT_URL_3"
   value: "/lovelace/third-page"
 ```
 
-To avoid problems, please ensure that the name only contains upper case letters, numbers and underscores. The value field must be a string, so it's better to always put your value (especially numbers) into a `"string"` .
+To avoid problems, ensure that the name only contains uppercase letters, numbers, and underscores. The `value` field must be a string, so it is best to always wrap your value (especially numbers) in `"quotes"`.
 
 ### How to set up the webhook
 
@@ -129,9 +144,9 @@ Modify the following lines in the HASS Lovelace Kindle 4 extension's [`script.sh
 
 ### Advanced configuration
 
-Some advanced variables for local usage which shouldn't be necessary when using Docker:
+Some advanced variables are mainly relevant for local usage or deliberate add-on overrides:
 
-- `OUTPUT_PATH=./output` (destination of rendered image, without extension. `OUTPUT_2`, `OUTPUT_3`, ... is also supported)
-- `PORT=5000` (port of server, which returns the last image)
-- `USE_IMAGE_MAGICK=false` (use ImageMagick instead of GraphicsMagick)
-- `UNSAFE_IGNORE_CERTIFICATE_ERRORS=true` (ignore certificate errors of e.g. self-signed certificates at your own risk)
+- `OUTPUT_PATH=./output/cover` (destination of the rendered image, without extension. `OUTPUT_PATH_2`, `OUTPUT_PATH_3`, ... are also supported. The Home Assistant add-on manages the base `OUTPUT_PATH` as `/output/cover`, but you can still override per-page paths through `ADDITIONAL_ENV_VARS`.)
+- `PORT=5000` (port of the built-in HTTP server. The Home Assistant add-on manages this internally.)
+- `USE_IMAGE_MAGICK=true` (use ImageMagick instead of GraphicsMagick. The packaged Docker image and Home Assistant add-on already enable this.)
+- `UNSAFE_IGNORE_CERTIFICATE_ERRORS=true` (ignore certificate errors such as self-signed certificates at your own risk)
