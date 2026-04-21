@@ -1,4 +1,7 @@
-# Testing Skill
+---
+name: testing
+description: Best practices and guidelines for writing unit and end-to-end tests for the project. Use when writing or running unit or e2e tests, or when setting up testing infrastructure.
+---
 
 ## Unit Tests (Vitest)
 

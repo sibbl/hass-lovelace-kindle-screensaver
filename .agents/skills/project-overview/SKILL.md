@@ -1,3 +1,7 @@
+---
+name: project-overview
+description: High-level overview of the Home Assistant Lovelace Kindle Screensaver project, including architecture. Use this for general questions about the project structure, tech stack, and how components interact.
+---
 # Home Assistant Lovelace Kindle Screensaver
 
 This is a Node.js application that generates Kindle-compatible screensaver images from Home Assistant Lovelace dashboards using Playwright (headless Chromium) and image processing tools.

@@ -1,4 +1,7 @@
-# TypeScript Conventions Skill
+---
+name: code-style
+description: Guidelines and conventions for maintaining consistent code style across the project.
+---
 
 ## Strict Configuration
 
