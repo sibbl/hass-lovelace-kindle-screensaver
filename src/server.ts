@@ -3,6 +3,8 @@ import * as crypto from "node:crypto";
 import * as fs from "node:fs/promises";
 import type { AppConfig, BatteryStore, BatteryState } from "./types";
 
+const FAVICON_PATH = "/favicon.ico";
+
 export function createHttpServer(config: AppConfig, batteryStore: BatteryStore): http.Server {
   const requireAuth = config.httpAuthUser !== null && config.httpAuthPassword !== null;
   if (requireAuth) {
@@ -25,13 +27,20 @@ async function handleRequest(
   batteryStore: BatteryStore,
   requireAuth: boolean,
 ): Promise<void> {
+  const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
+
+  if (url.pathname === FAVICON_PATH) {
+    response.writeHead(204);
+    response.end();
+    return;
+  }
+
   if (requireAuth) {
     if (!checkAuth(request, config, response)) {
       return;
     }
   }
 
-  const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
   const pageNumberStr = url.pathname;
   const batteryLevel = Number.parseInt(url.searchParams.get("batteryLevel") ?? "", 10);
   const isCharging = url.searchParams.get("isCharging");

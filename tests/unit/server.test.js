@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import http from "node:http";
 import path from "node:path";
 import { promises as fs } from "node:fs";
@@ -144,6 +144,25 @@ describe("HTTP Server", () => {
 
       const res = await makeRequest(server, { path: "/abc" });
       expect(res.statusCode).toBe(400);
+    });
+
+    it("should ignore favicon requests", async () => {
+      const config = makeConfig();
+      const batteryStore = {};
+      const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+      try {
+        server = createHttpServer(config, batteryStore);
+        await listenOnRandomPort(server);
+
+        const res = await makeRequest(server, { path: "/favicon.ico" });
+        expect(res.statusCode).toBe(204);
+        expect(res.body.length).toBe(0);
+        expect(Object.keys(batteryStore)).toHaveLength(0);
+        expect(consoleLogSpy).not.toHaveBeenCalled();
+      } finally {
+        consoleLogSpy.mockRestore();
+      }
     });
 
     it("should support HEAD requests", async () => {
