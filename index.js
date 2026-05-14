@@ -87,51 +87,20 @@ async function getFileHash(filePath) {
     }
   }
 
-  console.log("Starting browser...");
-  let browser = await puppeteer.launch({
-    args: [
-      "--disable-dev-shm-usage",
-      "--no-sandbox",
-      `--lang=${config.language}`,
-      config.ignoreCertificateErrors && "--ignore-certificate-errors"
-    ].filter((x) => x),
-    defaultViewport: null,
-    timeout: config.browserLaunchTimeout,
-    headless: config.debug !== true
-  });
-
-  console.log(`Visiting '${config.baseUrl}' to login...`);
-  let page = await browser.newPage();
-  await page.goto(config.baseUrl, {
-    timeout: config.renderingTimeout
-  });
-
-  const hassTokens = {
-    hassUrl: config.baseUrl,
-    access_token: config.accessToken,
-    token_type: "Bearer"
-  };
-
-  console.log("Adding authentication entry to browser's local storage...");
-  await page.evaluate(
-    (hassTokens, selectedLanguage, selectedTheme) => {
-      localStorage.setItem("hassTokens", hassTokens);
-      localStorage.setItem("selectedLanguage", selectedLanguage);
-      if (selectedTheme) {
-        localStorage.setItem("selectedTheme", selectedTheme);
-      }
-    },
-    JSON.stringify(hassTokens),
-    JSON.stringify(config.language),
-    config.theme ? JSON.stringify(config.theme) : null
-  );
-
-  page.close();
+  // --- Start HTTP server IMMEDIATELY (before browser/render setup) ---
+  // This ensures the Kindle always gets the last good image,
+  // even if HA is temporarily unreachable during startup.
+  console.log("Starting HTTP server...");
 
   // --- Render lock to prevent overlapping cron ticks ---
   let renderInProgress = false;
+  let browser = null;
 
-  const safeRender = async (browser) => {
+  const safeRender = async () => {
+    if (!browser) {
+      console.log("Browser not ready, skipping render tick");
+      return;
+    }
     if (renderInProgress) {
       console.log("Render already in progress, skipping tick");
       return;
@@ -145,11 +114,6 @@ async function getFileHash(filePath) {
       renderInProgress = false;
     }
   };
-
-  // --- Start HTTP server IMMEDIATELY (before first render) ---
-  // This ensures the Kindle always gets the last good image,
-  // even if HA is temporarily unreachable during startup.
-  console.log("Starting HTTP server...");
 
   const requireAuth = config.httpAuthUser && config.httpAuthPassword;
   if (requireAuth) {
@@ -267,22 +231,76 @@ async function getFileHash(filePath) {
     console.log(`Server is running at ${port}`);
   });
 
+  // --- Initialize browser and HA auth (non-blocking for HTTP) ---
+  // If this fails, the HTTP server keeps serving the last good image.
+  const initBrowser = async () => {
+    try {
+      console.log("Starting browser...");
+      browser = await puppeteer.launch({
+        args: [
+          "--disable-dev-shm-usage",
+          "--no-sandbox",
+          `--lang=${config.language}`,
+          config.ignoreCertificateErrors && "--ignore-certificate-errors"
+        ].filter((x) => x),
+        defaultViewport: null,
+        timeout: config.browserLaunchTimeout,
+        headless: config.debug !== true
+      });
+
+      console.log(`Visiting '${config.baseUrl}' to login...`);
+      let page = await browser.newPage();
+      await page.goto(config.baseUrl, {
+        timeout: config.renderingTimeout
+      });
+
+      const hassTokens = {
+        hassUrl: config.baseUrl,
+        access_token: config.accessToken,
+        token_type: "Bearer"
+      };
+
+      console.log("Adding authentication entry to browser's local storage...");
+      await page.evaluate(
+        (hassTokens, selectedLanguage, selectedTheme) => {
+          localStorage.setItem("hassTokens", hassTokens);
+          localStorage.setItem("selectedLanguage", selectedLanguage);
+          if (selectedTheme) {
+            localStorage.setItem("selectedTheme", selectedTheme);
+          }
+        },
+        JSON.stringify(hassTokens),
+        JSON.stringify(config.language),
+        config.theme ? JSON.stringify(config.theme) : null
+      );
+
+      await page.close();
+    } catch (err) {
+      console.error("Browser/HA login failed, will retry on next render tick:", err);
+    }
+  };
+
   // --- Now start rendering (HTTP is already serving) ---
-  if (config.debug) {
-    console.log(
-      "Debug mode active, will only render once in non-headless model and keep page open"
-    );
-    safeRender(browser);
-  } else {
-    console.log("Starting first render...");
-    await safeRender(browser);
-    console.log("Starting rendering cronjob...");
-    new CronJob({
-      cronTime: config.cronJob,
-      onTick: () => safeRender(browser),
-      start: true
-    });
-  }
+  const startRendering = async () => {
+    await initBrowser();
+    if (config.debug) {
+      console.log(
+        "Debug mode active, will only render once in non-headless model and keep page open"
+      );
+      await safeRender();
+    } else {
+      console.log("Starting first render...");
+      await safeRender();
+      console.log("Starting rendering cronjob...");
+      new CronJob({
+        cronTime: config.cronJob,
+        onTick: () => safeRender(),
+        start: true
+      });
+    }
+  };
+
+  startRendering();
 })();
 
 async function renderAndConvertAsync(browser) {
