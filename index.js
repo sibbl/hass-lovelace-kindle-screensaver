@@ -115,21 +115,28 @@ async function getFileHash(filePath) {
 
   page.close();
 
-  if (config.debug) {
-    console.log(
-      "Debug mode active, will only render once in non-headless model and keep page open"
-    );
-    renderAndConvertAsync(browser);
-  } else {
-    console.log("Starting first render...");
-    await renderAndConvertAsync(browser);
-    console.log("Starting rendering cronjob...");
-    new CronJob({
-      cronTime: config.cronJob,
-      onTick: () => renderAndConvertAsync(browser),
-      start: true
-    });
-  }
+  // --- Render lock to prevent overlapping cron ticks ---
+  let renderInProgress = false;
+
+  const safeRender = async (browser) => {
+    if (renderInProgress) {
+      console.log("Render already in progress, skipping tick");
+      return;
+    }
+    renderInProgress = true;
+    try {
+      await renderAndConvertAsync(browser);
+    } catch (err) {
+      console.error("Render job failed but server stays alive:", err.message || err);
+    } finally {
+      renderInProgress = false;
+    }
+  };
+
+  // --- Start HTTP server IMMEDIATELY (before first render) ---
+  // This ensures the Kindle always gets the last good image,
+  // even if HA is temporarily unreachable during startup.
+  console.log("Starting HTTP server...");
 
   const requireAuth = config.httpAuthUser && config.httpAuthPassword;
   if (requireAuth) {
@@ -246,6 +253,23 @@ async function getFileHash(filePath) {
   httpServer.listen(port, () => {
     console.log(`Server is running at ${port}`);
   });
+
+  // --- Now start rendering (HTTP is already serving) ---
+  if (config.debug) {
+    console.log(
+      "Debug mode active, will only render once in non-headless model and keep page open"
+    );
+    safeRender(browser);
+  } else {
+    console.log("Starting first render...");
+    await safeRender(browser);
+    console.log("Starting rendering cronjob...");
+    new CronJob({
+      cronTime: config.cronJob,
+      onTick: () => safeRender(browser),
+      start: true
+    });
+  }
 })();
 
 async function renderAndConvertAsync(browser) {
@@ -255,7 +279,15 @@ async function renderAndConvertAsync(browser) {
 
     const url = `${config.baseUrl}${pageConfig.screenShotUrl}`;
 
-    const outputPath = pageConfig.outputPath + "." + pageConfig.imageFormat;
+    // Strip trailing extension from OUTPUT_PATH if it matches IMAGE_FORMAT
+    // to avoid double extensions like cover.png.png
+    let rawOutputPath = pageConfig.outputPath;
+    const extWithDot = `.${pageConfig.imageFormat}`;
+    if (rawOutputPath.endsWith(extWithDot)) {
+      rawOutputPath = rawOutputPath.slice(0, -extWithDot.length);
+      console.log(`Stripped duplicate extension from OUTPUT_PATH, using: ${rawOutputPath}`);
+    }
+    const outputPath = rawOutputPath + "." + pageConfig.imageFormat;
     await fsExtra.ensureDir(path.dirname(outputPath));
 
     const tempPath = outputPath + ".temp";
@@ -271,35 +303,40 @@ async function renderAndConvertAsync(browser) {
     console.log(`Converting rendered screenshot of ${url} to grayscale...`);
 
     const finalTempPath = outputPath + ".final.temp";
-    await convertImageToKindleCompatiblePngAsync(
-      pageConfig,
-      tempPath,
-      finalTempPath
-    );
+    try {
+      await convertImageToKindleCompatiblePngAsync(
+        pageConfig,
+        tempPath,
+        finalTempPath
+      );
 
-    // Compare with existing image — only update if changed
-    let hasChanged = true;
-    if (await fsExtra.pathExists(outputPath)) {
-      const newHash = await getFileHash(finalTempPath);
-      const existingHash = await getFileHash(outputPath);
+      // Compare with existing image — only update if changed
+      let hasChanged = true;
+      if (await fsExtra.pathExists(outputPath)) {
+        const newHash = await getFileHash(finalTempPath);
+        const existingHash = await getFileHash(outputPath);
 
-      if (newHash && existingHash && newHash === existingHash) {
-        hasChanged = false;
-        console.log(`Image unchanged for ${url}, skipping update`);
+        if (newHash && existingHash && newHash === existingHash) {
+          hasChanged = false;
+          console.log(`Image unchanged for ${url}, skipping update`);
+        } else {
+          console.log(`Image changed for ${url}, updating`);
+        }
       } else {
-        console.log(`Image changed for ${url}, updating`);
+        console.log(`First render for ${url}, creating image`);
       }
-    } else {
-      console.log(`First render for ${url}, creating image`);
+
+      if (hasChanged) {
+        await fsExtra.move(finalTempPath, outputPath, { overwrite: true });
+      }
+    } catch (err) {
+      console.error(`Convert/replace failed for ${url}, keeping previous image:`, err.message || err);
+    } finally {
+      // Always clean up temp files
+      await fsExtra.remove(tempPath).catch(() => {});
+      await fsExtra.remove(finalTempPath).catch(() => {});
     }
 
-    if (hasChanged) {
-      await fsExtra.move(finalTempPath, outputPath, { overwrite: true });
-    } else {
-      await fs.unlink(finalTempPath);
-    }
-
-    await fs.unlink(tempPath);
     console.log(`Finished ${url}`);
 
     if (
