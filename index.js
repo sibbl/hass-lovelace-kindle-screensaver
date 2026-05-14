@@ -13,6 +13,19 @@ const crypto = require("crypto");
 // keep state of current battery level and whether the device is charging
 const batteryStore = {};
 
+/**
+ * Resolves the final output file path for a page, stripping duplicate extensions.
+ * e.g. OUTPUT_PATH=/output/cover.png + IMAGE_FORMAT=png → /output/cover.png
+ */
+function resolveOutputPath(pageConfig) {
+  let raw = pageConfig.outputPath;
+  const ext = `.${pageConfig.imageFormat}`;
+  if (raw.endsWith(ext)) {
+    raw = raw.slice(0, -ext.length);
+  }
+  return raw + ext;
+}
+
 // Helper function to calculate file hash
 async function getFileHash(filePath) {
   try {
@@ -127,7 +140,7 @@ async function getFileHash(filePath) {
     try {
       await renderAndConvertAsync(browser);
     } catch (err) {
-      console.error("Render job failed but server stays alive:", err.message || err);
+      console.error("Render job failed but server stays alive:", err);
     } finally {
       renderInProgress = false;
     }
@@ -190,7 +203,7 @@ async function getFileHash(filePath) {
       const pageIndex = pageNumber - 1;
       const configPage = config.pages[pageIndex];
 
-      const outputPathWithExtension = configPage.outputPath + "." + configPage.imageFormat;
+      const outputPathWithExtension = resolveOutputPath(configPage);
       const data = await fs.readFile(outputPathWithExtension);
       const stat = await fs.stat(outputPathWithExtension);
 
@@ -279,15 +292,7 @@ async function renderAndConvertAsync(browser) {
 
     const url = `${config.baseUrl}${pageConfig.screenShotUrl}`;
 
-    // Strip trailing extension from OUTPUT_PATH if it matches IMAGE_FORMAT
-    // to avoid double extensions like cover.png.png
-    let rawOutputPath = pageConfig.outputPath;
-    const extWithDot = `.${pageConfig.imageFormat}`;
-    if (rawOutputPath.endsWith(extWithDot)) {
-      rawOutputPath = rawOutputPath.slice(0, -extWithDot.length);
-      console.log(`Stripped duplicate extension from OUTPUT_PATH, using: ${rawOutputPath}`);
-    }
-    const outputPath = rawOutputPath + "." + pageConfig.imageFormat;
+    const outputPath = resolveOutputPath(pageConfig);
     await fsExtra.ensureDir(path.dirname(outputPath));
 
     const tempPath = outputPath + ".temp";
@@ -330,7 +335,7 @@ async function renderAndConvertAsync(browser) {
         await fsExtra.move(finalTempPath, outputPath, { overwrite: true });
       }
     } catch (err) {
-      console.error(`Convert/replace failed for ${url}, keeping previous image:`, err.message || err);
+      console.error(`Convert/replace failed for ${url}, keeping previous image:`, err);
     } finally {
       // Always clean up temp files
       await fsExtra.remove(tempPath).catch(() => {});
