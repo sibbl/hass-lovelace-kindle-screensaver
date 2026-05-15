@@ -335,7 +335,9 @@ async function getFileHash(filePath) {
     }
   };
 
-  startRendering();
+  startRendering().catch((err) => {
+    console.error("Rendering startup failed:", err);
+  });
 })();
 
 async function renderAndConvertAsync(browser) {
