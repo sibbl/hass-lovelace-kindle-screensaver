@@ -94,16 +94,20 @@ async function getFileHash(filePath) {
 
   // --- Render lock to prevent overlapping cron ticks ---
   let renderInProgress = false;
+  let initInProgress = false;
   let browser = null;
 
   const safeRender = async () => {
-    if (!browser) {
-      console.log("Browser not ready, skipping render tick");
-      return;
-    }
     if (renderInProgress) {
       console.log("Render already in progress, skipping tick");
       return;
+    }
+    if (!browser) {
+      await initBrowser();
+      if (!browser) {
+        console.log("Browser not ready after init attempt, skipping render tick");
+        return;
+      }
     }
     renderInProgress = true;
     try {
@@ -234,9 +238,20 @@ async function getFileHash(filePath) {
   // --- Initialize browser and HA auth (non-blocking for HTTP) ---
   // If this fails, the HTTP server keeps serving the last good image.
   const initBrowser = async () => {
+    if (browser) {
+      return browser;
+    }
+    if (initInProgress) {
+      console.log("Browser init already in progress, skipping init attempt");
+      return null;
+    }
+
+    initInProgress = true;
+    let nextBrowser = null;
+    let page = null;
     try {
       console.log("Starting browser...");
-      browser = await puppeteer.launch({
+      nextBrowser = await puppeteer.launch({
         args: [
           "--disable-dev-shm-usage",
           "--no-sandbox",
@@ -249,7 +264,7 @@ async function getFileHash(filePath) {
       });
 
       console.log(`Visiting '${config.baseUrl}' to login...`);
-      let page = await browser.newPage();
+      page = await nextBrowser.newPage();
       await page.goto(config.baseUrl, {
         timeout: config.renderingTimeout
       });
@@ -275,8 +290,28 @@ async function getFileHash(filePath) {
       );
 
       await page.close();
+      page = null;
+
+      browser = nextBrowser;
+      browser.on("disconnected", () => {
+        browser = null;
+      });
+      return browser;
     } catch (err) {
       console.error("Browser/HA login failed, will retry on next render tick:", err);
+      if (page) {
+        await page.close().catch((closeErr) => {
+          console.error("Failed to close login page after browser init failure:", closeErr);
+        });
+      }
+      if (nextBrowser) {
+        await nextBrowser.close().catch((closeErr) => {
+          console.error("Failed to close browser after init failure:", closeErr);
+        });
+      }
+      return null;
+    } finally {
+      initInProgress = false;
     }
   };
 
