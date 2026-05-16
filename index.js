@@ -13,6 +13,19 @@ const crypto = require("crypto");
 // keep state of current battery level and whether the device is charging
 const batteryStore = {};
 
+/**
+ * Resolves the final output file path for a page, stripping duplicate extensions.
+ * e.g. OUTPUT_PATH=/output/cover.png + IMAGE_FORMAT=png → /output/cover.png
+ */
+function resolveOutputPath(pageConfig) {
+  let raw = pageConfig.outputPath;
+  const ext = `.${pageConfig.imageFormat}`;
+  if (raw.endsWith(ext)) {
+    raw = raw.slice(0, -ext.length);
+  }
+  return raw + ext;
+}
+
 // Helper function to calculate file hash
 async function getFileHash(filePath) {
   try {
@@ -74,62 +87,37 @@ async function getFileHash(filePath) {
     }
   }
 
-  console.log("Starting browser...");
-  let browser = await puppeteer.launch({
-    args: [
-      "--disable-dev-shm-usage",
-      "--no-sandbox",
-      `--lang=${config.language}`,
-      config.ignoreCertificateErrors && "--ignore-certificate-errors"
-    ].filter((x) => x),
-    defaultViewport: null,
-    timeout: config.browserLaunchTimeout,
-    headless: config.debug !== true
-  });
+  // --- Start HTTP server IMMEDIATELY (before browser/render setup) ---
+  // This ensures the Kindle always gets the last good image,
+  // even if HA is temporarily unreachable during startup.
+  console.log("Starting HTTP server...");
 
-  console.log(`Visiting '${config.baseUrl}' to login...`);
-  let page = await browser.newPage();
-  await page.goto(config.baseUrl, {
-    timeout: config.renderingTimeout
-  });
+  // --- Render lock to prevent overlapping cron ticks ---
+  let renderInProgress = false;
+  let initInProgress = false;
+  let browser = null;
 
-  const hassTokens = {
-    hassUrl: config.baseUrl,
-    access_token: config.accessToken,
-    token_type: "Bearer"
-  };
-
-  console.log("Adding authentication entry to browser's local storage...");
-  await page.evaluate(
-    (hassTokens, selectedLanguage, selectedTheme) => {
-      localStorage.setItem("hassTokens", hassTokens);
-      localStorage.setItem("selectedLanguage", selectedLanguage);
-      if (selectedTheme) {
-        localStorage.setItem("selectedTheme", selectedTheme);
+  const safeRender = async () => {
+    if (renderInProgress) {
+      console.log("Render already in progress, skipping tick");
+      return;
+    }
+    if (!browser) {
+      await initBrowser();
+      if (!browser) {
+        console.log("Browser not ready after init attempt, skipping render tick");
+        return;
       }
-    },
-    JSON.stringify(hassTokens),
-    JSON.stringify(config.language),
-    config.theme ? JSON.stringify(config.theme) : null
-  );
-
-  page.close();
-
-  if (config.debug) {
-    console.log(
-      "Debug mode active, will only render once in non-headless model and keep page open"
-    );
-    renderAndConvertAsync(browser);
-  } else {
-    console.log("Starting first render...");
-    await renderAndConvertAsync(browser);
-    console.log("Starting rendering cronjob...");
-    new CronJob({
-      cronTime: config.cronJob,
-      onTick: () => renderAndConvertAsync(browser),
-      start: true
-    });
-  }
+    }
+    renderInProgress = true;
+    try {
+      await renderAndConvertAsync(browser);
+    } catch (err) {
+      console.error("Render job failed but server stays alive:", err);
+    } finally {
+      renderInProgress = false;
+    }
+  };
 
   const requireAuth = config.httpAuthUser && config.httpAuthPassword;
   if (requireAuth) {
@@ -183,7 +171,7 @@ async function getFileHash(filePath) {
       const pageIndex = pageNumber - 1;
       const configPage = config.pages[pageIndex];
 
-      const outputPathWithExtension = configPage.outputPath + "." + configPage.imageFormat;
+      const outputPathWithExtension = resolveOutputPath(configPage);
       const data = await fs.readFile(outputPathWithExtension);
       const stat = await fs.stat(outputPathWithExtension);
 
@@ -246,6 +234,110 @@ async function getFileHash(filePath) {
   httpServer.listen(port, () => {
     console.log(`Server is running at ${port}`);
   });
+
+  // --- Initialize browser and HA auth (non-blocking for HTTP) ---
+  // If this fails, the HTTP server keeps serving the last good image.
+  const initBrowser = async () => {
+    if (browser) {
+      return browser;
+    }
+    if (initInProgress) {
+      console.log("Browser init already in progress, skipping init attempt");
+      return null;
+    }
+
+    initInProgress = true;
+    let nextBrowser = null;
+    let page = null;
+    try {
+      console.log("Starting browser...");
+      nextBrowser = await puppeteer.launch({
+        args: [
+          "--disable-dev-shm-usage",
+          "--no-sandbox",
+          `--lang=${config.language}`,
+          config.ignoreCertificateErrors && "--ignore-certificate-errors"
+        ].filter((x) => x),
+        defaultViewport: null,
+        timeout: config.browserLaunchTimeout,
+        headless: config.debug !== true
+      });
+
+      console.log(`Visiting '${config.baseUrl}' to login...`);
+      page = await nextBrowser.newPage();
+      await page.goto(config.baseUrl, {
+        timeout: config.renderingTimeout
+      });
+
+      const hassTokens = {
+        hassUrl: config.baseUrl,
+        access_token: config.accessToken,
+        token_type: "Bearer"
+      };
+
+      console.log("Adding authentication entry to browser's local storage...");
+      await page.evaluate(
+        (hassTokens, selectedLanguage, selectedTheme) => {
+          localStorage.setItem("hassTokens", hassTokens);
+          localStorage.setItem("selectedLanguage", selectedLanguage);
+          if (selectedTheme) {
+            localStorage.setItem("selectedTheme", selectedTheme);
+          }
+        },
+        JSON.stringify(hassTokens),
+        JSON.stringify(config.language),
+        config.theme ? JSON.stringify(config.theme) : null
+      );
+
+      await page.close();
+      page = null;
+
+      browser = nextBrowser;
+      browser.on("disconnected", () => {
+        browser = null;
+      });
+      return browser;
+    } catch (err) {
+      console.error("Browser/HA login failed, will retry on next render tick:", err);
+      if (page) {
+        await page.close().catch((closeErr) => {
+          console.error("Failed to close login page after browser init failure:", closeErr);
+        });
+      }
+      if (nextBrowser) {
+        await nextBrowser.close().catch((closeErr) => {
+          console.error("Failed to close browser after init failure:", closeErr);
+        });
+      }
+      return null;
+    } finally {
+      initInProgress = false;
+    }
+  };
+
+  // --- Now start rendering (HTTP is already serving) ---
+  const startRendering = async () => {
+    await initBrowser();
+    if (config.debug) {
+      console.log(
+        "Debug mode active, will only render once in non-headless model and keep page open"
+      );
+      await safeRender();
+    } else {
+      console.log("Starting first render...");
+      await safeRender();
+      console.log("Starting rendering cronjob...");
+      new CronJob({
+        cronTime: config.cronJob,
+        onTick: () => safeRender(),
+        start: true
+      });
+    }
+  };
+
+  startRendering().catch((err) => {
+    console.error("Rendering startup failed:", err);
+  });
 })();
 
 async function renderAndConvertAsync(browser) {
@@ -255,7 +347,7 @@ async function renderAndConvertAsync(browser) {
 
     const url = `${config.baseUrl}${pageConfig.screenShotUrl}`;
 
-    const outputPath = pageConfig.outputPath + "." + pageConfig.imageFormat;
+    const outputPath = resolveOutputPath(pageConfig);
     await fsExtra.ensureDir(path.dirname(outputPath));
 
     const tempPath = outputPath + ".temp";
@@ -271,35 +363,40 @@ async function renderAndConvertAsync(browser) {
     console.log(`Converting rendered screenshot of ${url} to grayscale...`);
 
     const finalTempPath = outputPath + ".final.temp";
-    await convertImageToKindleCompatiblePngAsync(
-      pageConfig,
-      tempPath,
-      finalTempPath
-    );
+    try {
+      await convertImageToKindleCompatiblePngAsync(
+        pageConfig,
+        tempPath,
+        finalTempPath
+      );
 
-    // Compare with existing image — only update if changed
-    let hasChanged = true;
-    if (await fsExtra.pathExists(outputPath)) {
-      const newHash = await getFileHash(finalTempPath);
-      const existingHash = await getFileHash(outputPath);
+      // Compare with existing image — only update if changed
+      let hasChanged = true;
+      if (await fsExtra.pathExists(outputPath)) {
+        const newHash = await getFileHash(finalTempPath);
+        const existingHash = await getFileHash(outputPath);
 
-      if (newHash && existingHash && newHash === existingHash) {
-        hasChanged = false;
-        console.log(`Image unchanged for ${url}, skipping update`);
+        if (newHash && existingHash && newHash === existingHash) {
+          hasChanged = false;
+          console.log(`Image unchanged for ${url}, skipping update`);
+        } else {
+          console.log(`Image changed for ${url}, updating`);
+        }
       } else {
-        console.log(`Image changed for ${url}, updating`);
+        console.log(`First render for ${url}, creating image`);
       }
-    } else {
-      console.log(`First render for ${url}, creating image`);
+
+      if (hasChanged) {
+        await fsExtra.move(finalTempPath, outputPath, { overwrite: true });
+      }
+    } catch (err) {
+      console.error(`Convert/replace failed for ${url}, keeping previous image:`, err);
+    } finally {
+      // Always clean up temp files
+      await fsExtra.remove(tempPath).catch(() => {});
+      await fsExtra.remove(finalTempPath).catch(() => {});
     }
 
-    if (hasChanged) {
-      await fsExtra.move(finalTempPath, outputPath, { overwrite: true });
-    } else {
-      await fs.unlink(finalTempPath);
-    }
-
-    await fs.unlink(tempPath);
     console.log(`Finished ${url}`);
 
     if (
