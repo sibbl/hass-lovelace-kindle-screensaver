@@ -7,6 +7,9 @@ services:
       - HA_BASE_URL=https://your-path-to-home-assistant:8123
       - HA_SCREENSHOT_URL=/lovelace?kiosk
       - HA_ACCESS_TOKEN=eyJ0...
+      # Uncomment both HTTP_AUTH_* variables to require basic auth for the image endpoint.
+      # - HTTP_AUTH_USER=admin
+      # - HTTP_AUTH_PASSWORD=secret
       - CRON_JOB=* * * * *
       - RENDERING_TIMEOUT=30000
       - RENDERING_DELAY=0
