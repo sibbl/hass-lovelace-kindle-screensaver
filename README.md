@@ -16,6 +16,9 @@ This tool regularly takes a screenshot of a specific page of your home assistant
 
 Using my [own Kindle 4 setup guide](https://github.com/sibbl/hass-lovelace-kindle-4) or the [online screensaver extension](https://www.mobileread.com/forums/showthread.php?t=236104) for any jailbroken Kindle, this image can be regularly polled from your device so you can use it as a weather station, a display for next public transport departures etc.
 
+It is further possible to pass `forceRefresh` in the request URL (e.g. `http://localhost:5000/?forceRefresh`) to trigger a full render of all pages before returning the response.
+Keep in mind that this will delay the response, so ensure the timeout on the client side is suitably set.
+
 ### Energy-efficient image updates
 
 The tool compares each new screenshot with the previous one and only updates the served image when changes are detected. This keeps the `Last-Modified` timestamp and `ETag` header stable, allowing e-ink clients to skip unnecessary downloads and screen refreshes.

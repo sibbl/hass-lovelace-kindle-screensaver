@@ -97,6 +97,7 @@ class OperationTimeoutError extends Error {
   // --- Render lock to prevent overlapping cron ticks ---
   let renderInProgress = false;
   let renderStartedAt = null;
+  let currentRenderPromise = null;
   let activeRenderId = 0;
   let initInProgress = false;
   let browser = null;
@@ -122,9 +123,9 @@ class OperationTimeoutError extends Error {
       const lockAge = renderStartedAt ? Date.now() - renderStartedAt : 0;
       if (lockAge <= renderJobTimeout) {
         console.log(
-          `Render already in progress for ${lockAge}ms, skipping tick`
+          `Render already in progress for ${lockAge}ms, awaiting`
         );
-        return;
+        return currentRenderPromise;
       }
 
       console.error(
@@ -146,28 +147,33 @@ class OperationTimeoutError extends Error {
     const currentBrowser = browser;
     renderInProgress = true;
     renderStartedAt = Date.now();
-    let timedOut = false;
-    try {
-      await withTimeout(
-        renderAndConvertAsync(currentBrowser),
-        renderJobTimeout,
-        "render job",
-        () => {
-          timedOut = true;
+    currentRenderPromise = (async () => {
+      let timedOut = false;
+      try {
+        await withTimeout(
+          renderAndConvertAsync(currentBrowser),
+          renderJobTimeout,
+          "render job",
+          () => {
+            timedOut = true;
+          }
+        );
+        lastSuccessfulRenderAt = Date.now();
+      } catch (err) {
+        console.error("Render job failed but server stays alive:", err);
+        if (timedOut || err instanceof OperationTimeoutError) {
+          await closeCurrentBrowser("render timeout");
         }
-      );
-      lastSuccessfulRenderAt = Date.now();
-    } catch (err) {
-      console.error("Render job failed but server stays alive:", err);
-      if (timedOut || err instanceof OperationTimeoutError) {
-        await closeCurrentBrowser("render timeout");
+      } finally {
+        if (activeRenderId === renderId) {
+          currentRenderPromise = null;
+          renderInProgress = false;
+          renderStartedAt = null;
+        }
       }
-    } finally {
-      if (activeRenderId === renderId) {
-        renderInProgress = false;
-        renderStartedAt = null;
-      }
-    }
+    })();
+
+    return currentRenderPromise;
   };
 
   const requireAuth = config.httpAuthUser && config.httpAuthPassword;
@@ -234,6 +240,7 @@ class OperationTimeoutError extends Error {
     const isCharging = url.searchParams.get("isCharging");
     const pageNumber =
       pageNumberStr === "/" ? 1 : parseInt(pageNumberStr.substr(1));
+    const forceRefresh = url.searchParams.get("forceRefresh");
     if (
       isFinite(pageNumber) === false ||
       pageNumber > config.pages.length ||
@@ -243,6 +250,10 @@ class OperationTimeoutError extends Error {
       response.writeHead(400);
       response.end("Invalid request");
       return;
+    }
+    if (forceRefresh !== null) {
+      console.log("Force refresh requested, updating images...");
+      await safeRender();
     }
     try {
       // Log when the page was accessed
