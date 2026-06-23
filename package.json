@@ -1,6 +1,6 @@
 {
   "name": "hass-lovelace-kindle-screensaver",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "description": "",
   "main": "index.js",
   "scripts": {
