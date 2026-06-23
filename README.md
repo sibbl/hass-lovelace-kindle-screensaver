@@ -27,6 +27,18 @@ curl -I http://localhost:5000/
 ```
 
 Compare the returned `ETag` or `Last-Modified` with your last known value — only `GET` the image if it changed.
+Conditional `GET` and `HEAD` requests using `If-None-Match` or `If-Modified-Since` return `304 Not Modified` when the image has not changed.
+
+You can trigger an on-demand render for a single image before downloading it:
+
+```bash
+curl -v http://localhost:5000/?refresh=1
+curl -v http://localhost:5000/2?refresh=1
+```
+
+The response includes `X-Render-Status`. If rendering fails, the server keeps serving the previous image when one exists and returns `X-Render-Status: failed`.
+
+For API clients, use `POST /render` to render all pages, `POST /render/2` to render one page, and `POST /cache/clear` to restart Chromium and clear browser-side frontend caches. Kindle-compatible image requests can combine cache clearing and rendering with `?clearCache=1&refresh=1`.
 
 ## Usage
 
@@ -62,6 +74,7 @@ Home Assistant related stuff:
 | `RENDERING_SCREEN_HEIGHT` | `800`                                 | no       | yes      | Height of your kindle screen resolution                                                                                                                                                              |
 | `RENDERING_SCREEN_WIDTH`  | `600`                                 | no       | yes      | Width of your kindle screen resolution                                                                                                                                                               |
 | `BROWSER_LAUNCH_TIMEOUT`  | `30000`                               | no       | no       | Timeout for browser launch, helpful if your HASS instance is slow                                                                                                                                    |
+| `BROWSER_CACHE_TTL_SECONDS` | `86400`                             | no       | no       | Restart Chromium before rendering after this many seconds to clear browser-side Home Assistant frontend caches. Set to `0` to disable.                                                               |
 | `ROTATION`                | `0`                                   | no       | yes      | Rotation of image in degrees, e.g. use 90 or 270 to render in landscape                                                                                                                              |
 | `SCALING`                 | `1`                                   | no       | yes      | Scaling factor, e.g. `1.5` to zoom in or `0.75` to zoom out                                                                                                                                          |
 | `GRAYSCALE_DEPTH`         | `8`                                   | no       | yes      | Grayscale bit depth your kindle supports                                                                                                                                                             |

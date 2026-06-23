@@ -9,12 +9,17 @@ const puppeteer = require("puppeteer");
 const { CronJob, CronTime } = require("cron");
 const gm = require("gm");
 const crypto = require("crypto");
+const { shouldReturnNotModified } = require("./http-cache");
 const {
   getGraphicsMagickFormat,
   resolveFinalTempPath,
   resolveOutputPath,
   resolveScreenshotTempPath
 } = require("./image-output");
+const {
+  withTimeout
+} = require("./operation-timeout");
+const { RenderCoordinator } = require("./render-coordinator");
 
 // keep state of current battery level and whether the device is charging
 const batteryStore = {};
@@ -26,15 +31,6 @@ async function getFileHash(filePath) {
     return crypto.createHash('sha256').update(fileBuffer).digest('hex');
   } catch (error) {
     return null;
-  }
-}
-
-class OperationTimeoutError extends Error {
-  constructor(description, timeoutMs) {
-    super(`${description} timed out after ${timeoutMs}ms`);
-    this.name = "OperationTimeoutError";
-    this.description = description;
-    this.timeoutMs = timeoutMs;
   }
 }
 
@@ -94,12 +90,9 @@ class OperationTimeoutError extends Error {
   // even if HA is temporarily unreachable during startup.
   console.log("Starting HTTP server...");
 
-  // --- Render lock to prevent overlapping cron ticks ---
-  let renderInProgress = false;
-  let renderStartedAt = null;
-  let activeRenderId = 0;
   let initInProgress = false;
   let browser = null;
+  let browserStartedAt = null;
   const appStartedAt = Date.now();
   let lastSuccessfulRenderAt = null;
 
@@ -113,61 +106,82 @@ class OperationTimeoutError extends Error {
 
     const browserToClose = browser;
     browser = null;
+    browserStartedAt = null;
     console.error(`Closing browser after ${reason}`);
     await closeBrowser(browserToClose, reason);
   };
 
-  const safeRender = async () => {
-    if (renderInProgress) {
-      const lockAge = renderStartedAt ? Date.now() - renderStartedAt : 0;
-      if (lockAge <= renderJobTimeout) {
-        console.log(
-          `Render already in progress for ${lockAge}ms, skipping tick`
-        );
-        return;
-      }
+  const isBrowserCacheExpired = () => {
+    return (
+      config.browserCacheTtl > 0 &&
+      browserStartedAt !== null &&
+      Date.now() - browserStartedAt >= config.browserCacheTtl
+    );
+  };
 
-      console.error(
-        `Render lock is stale after ${lockAge}ms, resetting browser and continuing`
-      );
-      await closeCurrentBrowser("stale render lock");
-      renderInProgress = false;
-      renderStartedAt = null;
+  const ensureBrowser = async ({ resetBrowserCache = false } = {}) => {
+    if (resetBrowserCache) {
+      await closeCurrentBrowser("browser cache reset request");
+    } else if (isBrowserCacheExpired()) {
+      await closeCurrentBrowser("browser cache TTL expiry");
     }
+
     if (!browser) {
       await initBrowser();
       if (!browser) {
-        console.log("Browser not ready after init attempt, skipping render tick");
-        return;
+        throw new Error("Browser not ready after init attempt");
       }
     }
 
-    const renderId = ++activeRenderId;
-    const currentBrowser = browser;
-    renderInProgress = true;
-    renderStartedAt = Date.now();
-    let timedOut = false;
-    try {
-      await withTimeout(
-        renderAndConvertAsync(currentBrowser),
-        renderJobTimeout,
-        "render job",
-        () => {
-          timedOut = true;
+    return browser;
+  };
+
+  const renderCoordinator = new RenderCoordinator({
+    renderJobTimeout,
+    ensureBrowser,
+    closeBrowser: closeCurrentBrowser,
+    onSuccess: () => {
+      lastSuccessfulRenderAt = Date.now();
+    }
+  });
+
+  const safeRender = () => {
+    return renderCoordinator.run(
+      "scheduled render job",
+      (currentBrowser) => renderAndConvertAsync(currentBrowser),
+      { skipIfBusy: true }
+    );
+  };
+
+  const requestRender = (pageNumber, { resetBrowserCache = false } = {}) => {
+    if (pageNumber) {
+      const pageIndex = pageNumber - 1;
+      return renderCoordinator.run(
+        `requested render for image ${pageNumber}`,
+        (currentBrowser) => renderPageAndConvertAsync(currentBrowser, pageIndex),
+        {
+          resetBrowserCache,
+          updateLastSuccessfulRender: false
         }
       );
-      lastSuccessfulRenderAt = Date.now();
-    } catch (err) {
-      console.error("Render job failed but server stays alive:", err);
-      if (timedOut || err instanceof OperationTimeoutError) {
-        await closeCurrentBrowser("render timeout");
-      }
-    } finally {
-      if (activeRenderId === renderId) {
-        renderInProgress = false;
-        renderStartedAt = null;
-      }
     }
+
+    return renderCoordinator.run(
+      "requested render for all images",
+      (currentBrowser) => renderAndConvertAsync(currentBrowser),
+      { resetBrowserCache }
+    );
+  };
+
+  const clearBrowserCache = () => {
+    return renderCoordinator.run(
+      "browser cache clear",
+      () => Promise.resolve(),
+      {
+        resetBrowserCache: true,
+        updateLastSuccessfulRender: false
+      }
+    );
   };
 
   const requireAuth = config.httpAuthUser && config.httpAuthPassword;
@@ -183,6 +197,7 @@ class OperationTimeoutError extends Error {
       const now = Date.now();
       const age = lastSuccessfulRenderAt ? now - lastSuccessfulRenderAt : null;
       const startupAge = now - appStartedAt;
+      const renderState = renderCoordinator.getState(now);
       const isHealthy =
         lastSuccessfulRenderAt !== null
           ? age <= healthcheckMaxAge
@@ -190,8 +205,8 @@ class OperationTimeoutError extends Error {
 
       const payload = JSON.stringify({
         status: isHealthy ? "ok" : "stale",
-        renderInProgress,
-        renderInProgressFor: renderStartedAt ? now - renderStartedAt : null,
+        renderInProgress: renderState.renderInProgress,
+        renderInProgressFor: renderState.renderInProgressFor,
         lastSuccessfulRenderAt: lastSuccessfulRenderAt
           ? new Date(lastSuccessfulRenderAt).toISOString()
           : null,
@@ -226,6 +241,50 @@ class OperationTimeoutError extends Error {
       }
     }
 
+    if (url.pathname === "/render" || url.pathname.startsWith("/render/")) {
+      if (request.method !== "POST") {
+        response.writeHead(405, { "Allow": "POST" });
+        response.end("Method Not Allowed");
+        return;
+      }
+
+      const renderTarget = parseRenderTarget(url.pathname);
+      if (
+        renderTarget === null ||
+        renderTarget.pageNumber > config.pages.length
+      ) {
+        response.writeHead(400);
+        response.end("Invalid render target");
+        return;
+      }
+
+      const renderResult = await requestRender(renderTarget.pageNumber, {
+        resetBrowserCache: hasTruthyFlag(url.searchParams, "clearCache")
+      });
+      writeJsonResponse(
+        response,
+        renderResult.status === "ok" ? 200 : 503,
+        renderResult
+      );
+      return;
+    }
+
+    if (url.pathname === "/cache/clear") {
+      if (request.method !== "POST") {
+        response.writeHead(405, { "Allow": "POST" });
+        response.end("Method Not Allowed");
+        return;
+      }
+
+      const cacheClearResult = await clearBrowserCache();
+      writeJsonResponse(
+        response,
+        cacheClearResult.status === "ok" ? 200 : 503,
+        cacheClearResult
+      );
+      return;
+    }
+
     // Check the page number
     const pageNumberStr = url.pathname;
     // and get the battery level, if any
@@ -234,6 +293,10 @@ class OperationTimeoutError extends Error {
     const isCharging = url.searchParams.get("isCharging");
     const pageNumber =
       pageNumberStr === "/" ? 1 : parseInt(pageNumberStr.substr(1));
+    const refreshRequested =
+      hasTruthyFlag(url.searchParams, "refresh") ||
+      hasTruthyFlag(url.searchParams, "forceRefresh");
+    const cacheClearRequested = hasTruthyFlag(url.searchParams, "clearCache");
     if (
       isFinite(pageNumber) === false ||
       pageNumber > config.pages.length ||
@@ -244,12 +307,27 @@ class OperationTimeoutError extends Error {
       response.end("Invalid request");
       return;
     }
+
+    const pageIndex = pageNumber - 1;
+    updateBatteryStore(pageIndex, pageNumber, batteryLevel, isCharging);
+
+    let renderResult = null;
+    let cacheClearResult = null;
+    if (refreshRequested) {
+      console.log(`Refresh requested for image ${pageNumber}`);
+      renderResult = await requestRender(pageNumber, {
+        resetBrowserCache: cacheClearRequested
+      });
+    } else if (cacheClearRequested) {
+      console.log("Browser cache clear requested");
+      cacheClearResult = await clearBrowserCache();
+    }
+
     try {
       // Log when the page was accessed
       const n = new Date();
       console.log(`${n.toISOString()}: Image ${pageNumber} was accessed (${request.method})`);
 
-      const pageIndex = pageNumber - 1;
       const configPage = config.pages[pageIndex];
 
       const outputPathWithExtension = resolveOutputPath(configPage);
@@ -258,14 +336,30 @@ class OperationTimeoutError extends Error {
 
       const lastModifiedTime = new Date(stat.mtime).toUTCString();
       const etag = crypto.createHash('sha256').update(data).digest('hex');
+      const quotedEtag = `"${etag}"`;
 
       const headers = {
         "Content-Type": "image/" + configPage.imageFormat,
         "Content-Length": Buffer.byteLength(data),
         "Last-Modified": lastModifiedTime,
-        "ETag": `"${etag}"`,
-        "Cache-Control": "no-cache"
+        "ETag": quotedEtag,
+        "Cache-Control": "no-cache",
+        ...getOperationHeaders(renderResult, cacheClearResult)
       };
+
+      const operationFailed =
+        (renderResult && renderResult.status === "failed") ||
+        (cacheClearResult && cacheClearResult.status === "failed");
+      if (
+        !operationFailed &&
+        shouldReturnNotModified(request.headers, quotedEtag, stat.mtimeMs)
+      ) {
+        const notModifiedHeaders = { ...headers };
+        delete notModifiedHeaders["Content-Length"];
+        response.writeHead(304, notModifiedHeaders);
+        response.end();
+        return;
+      }
 
       // Support HEAD requests — return headers only, no body
       if (request.method === "HEAD") {
@@ -275,38 +369,9 @@ class OperationTimeoutError extends Error {
         response.writeHead(200, headers);
         response.end(data);
       }
-
-      let pageBatteryStore = batteryStore[pageIndex];
-      if (!pageBatteryStore) {
-        pageBatteryStore = batteryStore[pageIndex] = {
-          batteryLevel: null,
-          isCharging: false
-        };
-      }
-      if (!isNaN(batteryLevel) && batteryLevel >= 0 && batteryLevel <= 100) {
-        if (batteryLevel !== pageBatteryStore.batteryLevel) {
-          pageBatteryStore.batteryLevel = batteryLevel;
-          console.log(
-            `New battery level: ${batteryLevel} for page ${pageNumber}`
-          );
-        }
-
-        if (
-          (isCharging === "Yes" || isCharging === "1") &&
-          pageBatteryStore.isCharging !== true) {
-          pageBatteryStore.isCharging = true;
-          console.log(`Battery started charging for page ${pageNumber}`);
-        } else if (
-          (isCharging === "No" || isCharging === "0") &&
-          pageBatteryStore.isCharging !== false
-        ) {
-          console.log(`Battery stopped charging for page ${pageNumber}`);
-          pageBatteryStore.isCharging = false;
-        }
-      }
     } catch (e) {
       console.error(e);
-      response.writeHead(404);
+      response.writeHead(404, getOperationHeaders(renderResult, cacheClearResult));
       response.end("Image not found");
     }
   });
@@ -374,9 +439,11 @@ class OperationTimeoutError extends Error {
       page = null;
 
       browser = nextBrowser;
+      browserStartedAt = Date.now();
       browser.on("disconnected", () => {
         if (browser === nextBrowser) {
           browser = null;
+          browserStartedAt = null;
         }
       });
       return browser;
@@ -427,96 +494,96 @@ async function renderAndConvertAsync(browser) {
   let failedPages = 0;
 
   for (let pageIndex = 0; pageIndex < config.pages.length; pageIndex++) {
-    const pageConfig = config.pages[pageIndex];
-    const pageBatteryStore = batteryStore[pageIndex];
-
-    const url = `${config.baseUrl}${pageConfig.screenShotUrl}`;
-    const outputPath = resolveOutputPath(pageConfig);
-    const tempPath = resolveScreenshotTempPath(outputPath);
-    const finalTempPath = resolveFinalTempPath(
-      outputPath,
-      pageConfig.imageFormat
-    );
-
     try {
-      await fsExtra.ensureDir(path.dirname(outputPath));
-
-      console.log(`Rendering ${url} to image...`);
-      await renderUrlToImageAsync(browser, pageConfig, url, tempPath);
-
-      if (!(await fsExtra.pathExists(tempPath))) {
-        throw new Error(`Screenshot missing: ${tempPath}`);
-      }
-
-      console.log(`Converting rendered screenshot of ${url} to grayscale...`);
-
-      try {
-        await withTimeout(
-          convertImageToKindleCompatiblePngAsync(
-            pageConfig,
-            tempPath,
-            finalTempPath
-          ),
-          config.renderingTimeout,
-          `convert ${url}`
-        );
-
-        // Compare with existing image — only update if changed
-        let hasChanged = true;
-        if (await fsExtra.pathExists(outputPath)) {
-          const newHash = await getFileHash(finalTempPath);
-          const existingHash = await getFileHash(outputPath);
-
-          if (newHash && existingHash && newHash === existingHash) {
-            hasChanged = false;
-            console.log(`Image unchanged for ${url}, skipping update`);
-          } else {
-            console.log(`Image changed for ${url}, updating`);
-          }
-        } else {
-          console.log(`First render for ${url}, creating image`);
-        }
-
-        if (hasChanged) {
-          await withTimeout(
-            fsExtra.move(finalTempPath, outputPath, { overwrite: true }),
-            config.renderingTimeout,
-            `replace output for ${url}`
-          );
-        }
-      } finally {
-        // Always clean up temp files
-        await fsExtra.remove(tempPath).catch(() => {});
-        await fsExtra.remove(finalTempPath).catch(() => {});
-      }
-
-      console.log(`Finished ${url}`);
-
-      if (
-        pageBatteryStore &&
-        pageBatteryStore.batteryLevel !== null &&
-        pageConfig.batteryWebHook
-      ) {
-        sendBatteryLevelToHomeAssistant(
-          pageIndex,
-          pageBatteryStore,
-          pageConfig.batteryWebHook
-        );
-      }
+      await renderPageAndConvertAsync(browser, pageIndex);
     } catch (err) {
       failedPages++;
-      console.error(
-        `Render failed for ${url}, keeping previous image:`,
-        err
-      );
-    } finally {
-      await fsExtra.remove(tempPath).catch(() => {});
-      await fsExtra.remove(finalTempPath).catch(() => {});
+      console.error(`Render failed for page ${pageIndex + 1}:`, err);
     }
   }
 
   if (failedPages > 0) {
     throw new Error(`${failedPages} render page(s) failed`);
+  }
+}
+
+async function renderPageAndConvertAsync(browser, pageIndex) {
+  const pageConfig = config.pages[pageIndex];
+  const pageBatteryStore = batteryStore[pageIndex];
+
+  const url = `${config.baseUrl}${pageConfig.screenShotUrl}`;
+  const outputPath = resolveOutputPath(pageConfig);
+  const tempPath = resolveScreenshotTempPath(outputPath);
+  const finalTempPath = resolveFinalTempPath(
+    outputPath,
+    pageConfig.imageFormat
+  );
+
+  try {
+    await fsExtra.ensureDir(path.dirname(outputPath));
+
+    console.log(`Rendering ${url} to image...`);
+    await renderUrlToImageAsync(browser, pageConfig, url, tempPath);
+
+    if (!(await fsExtra.pathExists(tempPath))) {
+      throw new Error(`Screenshot missing: ${tempPath}`);
+    }
+
+    console.log(`Converting rendered screenshot of ${url} to grayscale...`);
+
+    await withTimeout(
+      convertImageToKindleCompatiblePngAsync(
+        pageConfig,
+        tempPath,
+        finalTempPath
+      ),
+      config.renderingTimeout,
+      `convert ${url}`
+    );
+
+    // Compare with existing image — only update if changed
+    let hasChanged = true;
+    if (await fsExtra.pathExists(outputPath)) {
+      const newHash = await getFileHash(finalTempPath);
+      const existingHash = await getFileHash(outputPath);
+
+      if (newHash && existingHash && newHash === existingHash) {
+        hasChanged = false;
+        console.log(`Image unchanged for ${url}, skipping update`);
+      } else {
+        console.log(`Image changed for ${url}, updating`);
+      }
+    } else {
+      console.log(`First render for ${url}, creating image`);
+    }
+
+    if (hasChanged) {
+      await withTimeout(
+        fsExtra.move(finalTempPath, outputPath, { overwrite: true }),
+        config.renderingTimeout,
+        `replace output for ${url}`
+      );
+    }
+
+    console.log(`Finished ${url}`);
+
+    if (
+      pageBatteryStore &&
+      pageBatteryStore.batteryLevel !== null &&
+      pageConfig.batteryWebHook
+    ) {
+      sendBatteryLevelToHomeAssistant(
+        pageIndex,
+        pageBatteryStore,
+        pageConfig.batteryWebHook
+      );
+    }
+  } catch (err) {
+    console.error(`Render failed for ${url}, keeping previous image:`, err);
+    throw err;
+  } finally {
+    await fsExtra.remove(tempPath).catch(() => {});
+    await fsExtra.remove(finalTempPath).catch(() => {});
   }
 }
 
@@ -548,6 +615,100 @@ function sendBatteryLevelToHomeAssistant(
   });
   req.write(batteryStatus);
   req.end();
+}
+
+function updateBatteryStore(pageIndex, pageNumber, batteryLevel, isCharging) {
+  let pageBatteryStore = batteryStore[pageIndex];
+  if (!pageBatteryStore) {
+    pageBatteryStore = batteryStore[pageIndex] = {
+      batteryLevel: null,
+      isCharging: false
+    };
+  }
+
+  if (isNaN(batteryLevel) || batteryLevel < 0 || batteryLevel > 100) {
+    return;
+  }
+
+  if (batteryLevel !== pageBatteryStore.batteryLevel) {
+    pageBatteryStore.batteryLevel = batteryLevel;
+    console.log(`New battery level: ${batteryLevel} for page ${pageNumber}`);
+  }
+
+  if (
+    (isCharging === "Yes" || isCharging === "1") &&
+    pageBatteryStore.isCharging !== true
+  ) {
+    pageBatteryStore.isCharging = true;
+    console.log(`Battery started charging for page ${pageNumber}`);
+  } else if (
+    (isCharging === "No" || isCharging === "0") &&
+    pageBatteryStore.isCharging !== false
+  ) {
+    console.log(`Battery stopped charging for page ${pageNumber}`);
+    pageBatteryStore.isCharging = false;
+  }
+}
+
+function hasTruthyFlag(searchParams, name) {
+  if (!searchParams.has(name)) {
+    return false;
+  }
+
+  const value = String(searchParams.get(name) || "").toLowerCase();
+  return !["0", "false", "no", "off"].includes(value);
+}
+
+function parseRenderTarget(pathname) {
+  if (pathname === "/render") {
+    return { pageNumber: null };
+  }
+
+  const match = pathname.match(/^\/render\/(\d+)$/);
+  if (!match) {
+    return null;
+  }
+
+  const pageNumber = parseInt(match[1], 10);
+  if (!Number.isFinite(pageNumber) || pageNumber < 1) {
+    return null;
+  }
+
+  return { pageNumber };
+}
+
+function getOperationHeaders(renderResult, cacheClearResult) {
+  const headers = {};
+
+  if (renderResult) {
+    headers["X-Render-Status"] = renderResult.status;
+    if (renderResult.error) {
+      headers["X-Render-Error"] = sanitizeHeaderValue(renderResult.error);
+    }
+  }
+
+  if (cacheClearResult) {
+    headers["X-Cache-Clear-Status"] = cacheClearResult.status;
+    if (cacheClearResult.error) {
+      headers["X-Cache-Clear-Error"] = sanitizeHeaderValue(cacheClearResult.error);
+    }
+  }
+
+  return headers;
+}
+
+function sanitizeHeaderValue(value) {
+  return String(value).replace(/[\r\n]/g, " ").slice(0, 256);
+}
+
+function writeJsonResponse(response, statusCode, payload) {
+  const body = JSON.stringify(payload);
+  response.writeHead(statusCode, {
+    "Content-Type": "application/json",
+    "Content-Length": Buffer.byteLength(body),
+    "Cache-Control": "no-cache"
+  });
+  response.end(body);
 }
 
 async function renderUrlToImageAsync(browser, pageConfig, url, path) {
@@ -681,22 +842,6 @@ function convertImageToKindleCompatiblePngAsync(
         resolve();
       }
     });
-  });
-}
-
-function withTimeout(promise, timeoutMs, description, onTimeout) {
-  let timeoutId;
-  const timeoutPromise = new Promise((resolve, reject) => {
-    timeoutId = setTimeout(() => {
-      if (onTimeout) {
-        onTimeout();
-      }
-      reject(new OperationTimeoutError(description, timeoutMs));
-    }, timeoutMs);
-  });
-
-  return Promise.race([promise, timeoutPromise]).finally(() => {
-    clearTimeout(timeoutId);
   });
 }
 
