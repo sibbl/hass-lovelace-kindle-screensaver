@@ -11,6 +11,16 @@ function parseIntegerEnvironmentVariable(key, fallbackValue) {
   return Number.isFinite(parsed) ? parsed : fallbackValue;
 }
 
+function parseNonNegativeIntegerEnvironmentVariable(key, fallbackValue) {
+  const parsed = parseIntegerEnvironmentVariable(key, fallbackValue);
+  return parsed >= 0 ? parsed : fallbackValue;
+}
+
+const browserCacheTtlSeconds = parseNonNegativeIntegerEnvironmentVariable(
+  "BROWSER_CACHE_TTL_SECONDS",
+  86400
+);
+
 function getPagesConfig() {
   const pages = [];
   let i = 0;
@@ -58,6 +68,8 @@ module.exports = {
   port: process.env.PORT || 5000,
   renderingTimeout: parseIntegerEnvironmentVariable("RENDERING_TIMEOUT", 10000),
   browserLaunchTimeout: parseIntegerEnvironmentVariable("BROWSER_LAUNCH_TIMEOUT", 30000),
+  browserCacheTtlSeconds,
+  browserCacheTtl: browserCacheTtlSeconds * 1000,
   language: process.env.LANGUAGE || "en",
   theme: process.env.HA_THEME ? { theme: process.env.HA_THEME } : null,
   debug: process.env.DEBUG === "true",
