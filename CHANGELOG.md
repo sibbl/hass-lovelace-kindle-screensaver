@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.19
+
+### Added
+
+* Add on-demand rendering endpoints for all pages or a single page
+* Add browser cache reset support with an optional browser cache TTL
+* Add conditional image responses using `ETag` and `Last-Modified` validators
+* Add render status headers for refresh requests
+
+### Fixed
+
+* Keep page-specific refreshes from masking stale all-page render health
+
 ## 1.0.18
 
 ### Added
