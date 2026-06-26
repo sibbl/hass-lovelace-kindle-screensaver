@@ -19,11 +19,14 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     USE_IMAGE_MAGICK=true
 
 COPY package*.json ./
+COPY tsconfig*.json ./
 COPY local.conf /etc/fonts/local.conf
 
 RUN npm ci
 
-COPY *.js ./
+COPY src ./src
+
+RUN npm run build && npm prune --omit=dev
 
 EXPOSE 5000
 

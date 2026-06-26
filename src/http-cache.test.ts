@@ -1,8 +1,5 @@
-import { createRequire } from "module";
 import { describe, expect, it } from "vitest";
-
-const require = createRequire(import.meta.url);
-const { shouldReturnNotModified } = require("./http-cache.js");
+import { shouldReturnNotModified } from "./http-cache";
 
 describe("HTTP cache validators", () => {
   it("matches If-None-Match against the current ETag", () => {

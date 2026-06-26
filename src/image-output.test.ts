@@ -1,13 +1,11 @@
 import { describe, expect, it } from "vitest";
-import imageOutput from "./image-output.js";
-
-const {
+import {
   getGraphicsMagickFormat,
   normalizeImageFormat,
   resolveFinalTempPath,
   resolveOutputPath,
   resolveScreenshotTempPath
-} = imageOutput;
+} from "./image-output";
 
 describe("image output paths", () => {
   it("appends the configured image format", () => {
@@ -58,5 +56,9 @@ describe("image output formats", () => {
     expect(normalizeImageFormat("JPEG")).toBe("jpeg");
     expect(getGraphicsMagickFormat("jpeg")).toBe("JPEG");
     expect(getGraphicsMagickFormat("bmp")).toBe("BMP");
+  });
+
+  it("falls back to png for unsupported formats", () => {
+    expect(normalizeImageFormat("webp")).toBe("png");
   });
 });

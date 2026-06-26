@@ -1,23 +1,30 @@
-import { createRequire } from "module";
 import { describe, expect, it, vi } from "vitest";
+import { RenderCoordinator } from "./render-coordinator";
 
-const require = createRequire(import.meta.url);
-const { RenderCoordinator } = require("./render-coordinator.js");
-
-function createDeferred() {
-  let resolve;
-  const promise = new Promise((innerResolve) => {
-    resolve = innerResolve;
+function createDeferred(): {
+  readonly promise: Promise<void>;
+  readonly resolve: () => void;
+} {
+  let resolvePromise: (() => void) | null = null;
+  const promise = new Promise<void>((resolve) => {
+    resolvePromise = resolve;
   });
 
-  return { promise, resolve };
+  return {
+    promise,
+    resolve: () => {
+      if (resolvePromise) {
+        resolvePromise();
+      }
+    }
+  };
 }
 
 describe("render coordinator", () => {
   it("skips scheduled renders while work is already pending", async () => {
     const deferred = createDeferred();
     const work = vi.fn(() => deferred.promise);
-    const coordinator = new RenderCoordinator({
+    const coordinator = new RenderCoordinator<string>({
       renderJobTimeout: 1000,
       ensureBrowser: vi.fn(async () => "browser"),
       closeBrowser: vi.fn(),
@@ -29,7 +36,7 @@ describe("render coordinator", () => {
 
     const skippedRender = await coordinator.run(
       "scheduled render",
-      vi.fn(),
+      vi.fn(async () => {}),
       { skipIfBusy: true }
     );
 
@@ -44,8 +51,8 @@ describe("render coordinator", () => {
 
   it("queues requested renders behind active renders", async () => {
     const firstDeferred = createDeferred();
-    const calls = [];
-    const coordinator = new RenderCoordinator({
+    const calls: string[] = [];
+    const coordinator = new RenderCoordinator<string>({
       renderJobTimeout: 1000,
       ensureBrowser: vi.fn(async () => "browser"),
       closeBrowser: vi.fn(),
@@ -73,7 +80,7 @@ describe("render coordinator", () => {
 
   it("passes cache reset requests to browser initialization", async () => {
     const ensureBrowser = vi.fn(async () => "browser");
-    const coordinator = new RenderCoordinator({
+    const coordinator = new RenderCoordinator<string>({
       renderJobTimeout: 1000,
       ensureBrowser,
       closeBrowser: vi.fn(),
@@ -89,7 +96,7 @@ describe("render coordinator", () => {
 
   it("can skip the global success callback for page-specific renders", async () => {
     const onSuccess = vi.fn();
-    const coordinator = new RenderCoordinator({
+    const coordinator = new RenderCoordinator<string>({
       renderJobTimeout: 1000,
       ensureBrowser: vi.fn(async () => "browser"),
       closeBrowser: vi.fn(),
@@ -106,7 +113,7 @@ describe("render coordinator", () => {
 
   it("returns failed status and closes the browser after render timeout", async () => {
     const closeBrowser = vi.fn();
-    const coordinator = new RenderCoordinator({
+    const coordinator = new RenderCoordinator<string>({
       renderJobTimeout: 5,
       cleanupTimeout: 5,
       ensureBrowser: vi.fn(async () => "browser"),
@@ -116,17 +123,17 @@ describe("render coordinator", () => {
 
     const result = await coordinator.run(
       "stuck render",
-      () => new Promise(() => {})
+      () => new Promise<void>(() => {})
     );
 
     expect(result.status).toBe("failed");
-    expect(result.error).toContain("stuck render timed out");
+    expect(result).toMatchObject({ error: "stuck render timed out after 5ms" });
     expect(closeBrowser).toHaveBeenCalledWith("stuck render timeout");
   });
 
   it("aborts timed-out work before releasing the render", async () => {
     let aborted = false;
-    const coordinator = new RenderCoordinator({
+    const coordinator = new RenderCoordinator<string>({
       renderJobTimeout: 5,
       cleanupTimeout: 50,
       ensureBrowser: vi.fn(async () => "browser"),
@@ -137,7 +144,7 @@ describe("render coordinator", () => {
     const result = await coordinator.run(
       "slow render",
       (browser, renderContext) => {
-        return new Promise((resolve) => {
+        return new Promise<void>((resolve) => {
           renderContext.signal.addEventListener("abort", () => {
             aborted = true;
             resolve();

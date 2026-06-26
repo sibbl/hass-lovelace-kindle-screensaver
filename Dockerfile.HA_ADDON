@@ -1,4 +1,4 @@
-ARG BUILD_FROM
+ARG BUILD_FROM=node:16-alpine3.17
 FROM ${BUILD_FROM} 
 
 WORKDIR /app
@@ -21,10 +21,11 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     USE_IMAGE_MAGICK=true
 
 COPY package*.json ./
+COPY tsconfig*.json ./
 COPY local.conf /etc/fonts/local.conf
-COPY *.js ./
+COPY src ./src
 
-RUN npm ci
+RUN npm ci && npm run build && npm prune --omit=dev
 
 
 # Copy data for add-on
