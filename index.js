@@ -17,6 +17,8 @@ const {
   resolveScreenshotTempPath
 } = require("./image-output");
 const {
+  throwIfAborted,
+  waitForAbortableTimeout,
   withTimeout
 } = require("./operation-timeout");
 const { RenderCoordinator } = require("./render-coordinator");
@@ -148,7 +150,8 @@ async function getFileHash(filePath) {
   const safeRender = () => {
     return renderCoordinator.run(
       "scheduled render job",
-      (currentBrowser) => renderAndConvertAsync(currentBrowser),
+      (currentBrowser, renderContext) =>
+        renderAndConvertAsync(currentBrowser, renderContext),
       { skipIfBusy: true }
     );
   };
@@ -158,7 +161,8 @@ async function getFileHash(filePath) {
       const pageIndex = pageNumber - 1;
       return renderCoordinator.run(
         `requested render for image ${pageNumber}`,
-        (currentBrowser) => renderPageAndConvertAsync(currentBrowser, pageIndex),
+        (currentBrowser, renderContext) =>
+          renderPageAndConvertAsync(currentBrowser, pageIndex, renderContext),
         {
           resetBrowserCache,
           updateLastSuccessfulRender: false
@@ -168,7 +172,8 @@ async function getFileHash(filePath) {
 
     return renderCoordinator.run(
       "requested render for all images",
-      (currentBrowser) => renderAndConvertAsync(currentBrowser),
+      (currentBrowser, renderContext) =>
+        renderAndConvertAsync(currentBrowser, renderContext),
       { resetBrowserCache }
     );
   };
@@ -490,13 +495,15 @@ async function getFileHash(filePath) {
   });
 })();
 
-async function renderAndConvertAsync(browser) {
+async function renderAndConvertAsync(browser, renderContext = {}) {
   let failedPages = 0;
 
   for (let pageIndex = 0; pageIndex < config.pages.length; pageIndex++) {
+    throwIfAborted(renderContext.signal, "render job");
     try {
-      await renderPageAndConvertAsync(browser, pageIndex);
+      await renderPageAndConvertAsync(browser, pageIndex, renderContext);
     } catch (err) {
+      throwIfAborted(renderContext.signal, "render job");
       failedPages++;
       console.error(`Render failed for page ${pageIndex + 1}:`, err);
     }
@@ -507,7 +514,7 @@ async function renderAndConvertAsync(browser) {
   }
 }
 
-async function renderPageAndConvertAsync(browser, pageIndex) {
+async function renderPageAndConvertAsync(browser, pageIndex, renderContext = {}) {
   const pageConfig = config.pages[pageIndex];
   const pageBatteryStore = batteryStore[pageIndex];
 
@@ -520,10 +527,18 @@ async function renderPageAndConvertAsync(browser, pageIndex) {
   );
 
   try {
+    throwIfAborted(renderContext.signal, "render page");
     await fsExtra.ensureDir(path.dirname(outputPath));
 
     console.log(`Rendering ${url} to image...`);
-    await renderUrlToImageAsync(browser, pageConfig, url, tempPath);
+    await renderUrlToImageAsync(
+      browser,
+      pageConfig,
+      url,
+      tempPath,
+      renderContext
+    );
+    throwIfAborted(renderContext.signal, "render page");
 
     if (!(await fsExtra.pathExists(tempPath))) {
       throw new Error(`Screenshot missing: ${tempPath}`);
@@ -540,6 +555,7 @@ async function renderPageAndConvertAsync(browser, pageIndex) {
       config.renderingTimeout,
       `convert ${url}`
     );
+    throwIfAborted(renderContext.signal, "render page");
 
     // Compare with existing image — only update if changed
     let hasChanged = true;
@@ -711,14 +727,22 @@ function writeJsonResponse(response, statusCode, payload) {
   response.end(body);
 }
 
-async function renderUrlToImageAsync(browser, pageConfig, url, path) {
+async function renderUrlToImageAsync(
+  browser,
+  pageConfig,
+  url,
+  path,
+  renderContext = {}
+) {
   let page;
   try {
+    throwIfAborted(renderContext.signal, `render ${url}`);
     page = await withTimeout(
       browser.newPage(),
       config.renderingTimeout,
       `open browser page for ${url}`
     );
+    throwIfAborted(renderContext.signal, `render ${url}`);
     await withTimeout(
       page.emulateMediaFeatures([
         {
@@ -729,6 +753,7 @@ async function renderUrlToImageAsync(browser, pageConfig, url, path) {
       config.renderingTimeout,
       `emulate media for ${url}`
     );
+    throwIfAborted(renderContext.signal, `render ${url}`);
 
     let size = {
       width: Number(pageConfig.renderingScreenSize.width),
@@ -747,18 +772,21 @@ async function renderUrlToImageAsync(browser, pageConfig, url, path) {
       config.renderingTimeout,
       `set viewport for ${url}`
     );
+    throwIfAborted(renderContext.signal, `render ${url}`);
     const startTime = new Date().valueOf();
     console.log(`Navigating to ${url}...`);
     await page.goto(url, {
       waitUntil: ["domcontentloaded", "load", "networkidle0"],
       timeout: config.renderingTimeout
     });
+    throwIfAborted(renderContext.signal, `render ${url}`);
 
     const navigateTimespan = new Date().valueOf() - startTime;
     console.log(`Waiting for home-assistant root on ${url}...`);
     await page.waitForSelector("home-assistant", {
       timeout: Math.max(config.renderingTimeout - navigateTimespan, 1000)
     });
+    throwIfAborted(renderContext.signal, `render ${url}`);
 
     await withTimeout(
       page.addStyleTag({
@@ -771,10 +799,16 @@ async function renderUrlToImageAsync(browser, pageConfig, url, path) {
       config.renderingTimeout,
       `add page style for ${url}`
     );
+    throwIfAborted(renderContext.signal, `render ${url}`);
 
     if (pageConfig.renderingDelay > 0) {
-      await page.waitForTimeout(pageConfig.renderingDelay);
+      await waitForAbortableTimeout(
+        pageConfig.renderingDelay,
+        renderContext.signal,
+        `rendering delay for ${url}`
+      );
     }
+    throwIfAborted(renderContext.signal, `render ${url}`);
     console.log(`Taking screenshot of ${url}...`);
     await withTimeout(
       page.screenshot({

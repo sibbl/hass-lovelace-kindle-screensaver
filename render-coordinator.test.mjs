@@ -108,6 +108,7 @@ describe("render coordinator", () => {
     const closeBrowser = vi.fn();
     const coordinator = new RenderCoordinator({
       renderJobTimeout: 5,
+      cleanupTimeout: 5,
       ensureBrowser: vi.fn(async () => "browser"),
       closeBrowser,
       logger: { log: vi.fn(), error: vi.fn() }
@@ -121,5 +122,31 @@ describe("render coordinator", () => {
     expect(result.status).toBe("failed");
     expect(result.error).toContain("stuck render timed out");
     expect(closeBrowser).toHaveBeenCalledWith("stuck render timeout");
+  });
+
+  it("aborts timed-out work before releasing the render", async () => {
+    let aborted = false;
+    const coordinator = new RenderCoordinator({
+      renderJobTimeout: 5,
+      cleanupTimeout: 50,
+      ensureBrowser: vi.fn(async () => "browser"),
+      closeBrowser: vi.fn(),
+      logger: { log: vi.fn(), error: vi.fn() }
+    });
+
+    const result = await coordinator.run(
+      "slow render",
+      (browser, renderContext) => {
+        return new Promise((resolve) => {
+          renderContext.signal.addEventListener("abort", () => {
+            aborted = true;
+            resolve();
+          });
+        });
+      }
+    );
+
+    expect(result.status).toBe("failed");
+    expect(aborted).toBe(true);
   });
 });
