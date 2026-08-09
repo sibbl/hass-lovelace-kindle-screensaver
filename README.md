@@ -169,3 +169,15 @@ Some advanced variables for local usage which shouldn't be necessary when using 
 - `PORT=5000` (port of server, which returns the last image)
 - `USE_IMAGE_MAGICK=false` (use ImageMagick instead of GraphicsMagick)
 - `UNSAFE_IGNORE_CERTIFICATE_ERRORS=true` (ignore certificate errors of e.g. self-signed certificates at your own risk)
+
+## Development
+
+The application and tests are written in strict TypeScript. Install dependencies and run the complete validation suite before starting a local build:
+
+```bash
+npm ci
+npm run validate
+npm start
+```
+
+`npm run validate` type-checks the application and tests, runs the Vitest regression suite, and compiles the production files into `dist/`. Docker and Home Assistant Add-On builds perform the production compilation automatically.

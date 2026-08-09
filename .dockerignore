@@ -1,9 +1,10 @@
 node_modules/
+dist/
+tests/
 .github/
 .git/
 .vscode/
 assets/
-config.*.js
 docker-compose.*.yml
 docker-compose.yml
 output/

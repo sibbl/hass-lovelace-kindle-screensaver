@@ -2,10 +2,13 @@
   "name": "hass-lovelace-kindle-screensaver",
   "version": "1.2.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "node index.js",
-    "test": "vitest run"
+    "build": "tsc --project tsconfig.build.json",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "typecheck": "tsc --project tsconfig.json",
+    "validate": "npm run typecheck && npm test && npm run build"
   },
   "author": "sibbl",
   "license": "MIT",
@@ -17,6 +20,11 @@
     "puppeteer": "^11.0.0"
   },
   "devDependencies": {
+    "@types/cron": "^1.7.3",
+    "@types/fs-extra": "^11.0.4",
+    "@types/gm": "^1.25.4",
+    "@types/node": "^16.18.126",
+    "typescript": "^5.9.3",
     "vite": "^4.5.14",
     "vitest": "^0.34.6"
   }

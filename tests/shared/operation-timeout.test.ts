@@ -1,11 +1,8 @@
-import { createRequire } from "module";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
-const require = createRequire(import.meta.url);
-const {
+import {
   OperationTimeoutError,
   withTimeout
-} = require("./operation-timeout.js");
+} from "../../src/shared/operation-timeout";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -20,7 +17,6 @@ describe("operation timeout", () => {
 
   it("preserves operation errors", async () => {
     const operationError = new Error("operation failed");
-
     await expect(
       withTimeout(Promise.reject(operationError), 1000, "failed operation")
     ).rejects.toBe(operationError);
@@ -30,20 +26,19 @@ describe("operation timeout", () => {
     vi.useFakeTimers();
     const onTimeout = vi.fn();
     const result = withTimeout(
-      new Promise(() => {}),
+      new Promise<never>(() => undefined),
       250,
       "slow operation",
       onTimeout
     );
-
     const rejection = expect(result).rejects.toMatchObject({
       name: "OperationTimeoutError",
       description: "slow operation",
       timeoutMs: 250,
       message: "slow operation timed out after 250ms"
     });
-    await vi.advanceTimersByTimeAsync(250);
 
+    await vi.advanceTimersByTimeAsync(250);
     await rejection;
     expect(onTimeout).toHaveBeenCalledOnce();
     expect(new OperationTimeoutError("test", 5)).toBeInstanceOf(Error);

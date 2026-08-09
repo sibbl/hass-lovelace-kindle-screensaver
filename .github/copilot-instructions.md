@@ -1,6 +1,6 @@
 # Home Assistant Lovelace Kindle Screensaver
 
-This is a Node.js application that generates Kindle-compatible screensaver images from Home Assistant Lovelace dashboards using Puppeteer (headless Chrome) and image processing tools.
+This is a strict TypeScript application that generates Kindle-compatible screensaver images from Home Assistant Lovelace dashboards using Puppeteer (headless Chrome) and image processing tools.
 
 Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.
 
@@ -14,7 +14,8 @@ Install required system dependencies before starting:
 
 ### Bootstrap and Dependencies
 - `PUPPETEER_SKIP_DOWNLOAD=true npm install` -- takes 1-2 seconds. ALWAYS use PUPPETEER_SKIP_DOWNLOAD=true to avoid network download failures.
-- Build time: No compilation step needed, this is a direct-run Node.js application.
+- Build: `npm run build` compiles `src/` into `dist/`.
+- Complete validation: `npm run validate` type-checks source and tests, runs Vitest, and builds the production output.
 
 ### Running the Application
 **CRITICAL**: This application requires a working Home Assistant instance to be fully functional. Without it, the application will fail during browser launch or screenshot generation.
@@ -28,7 +29,8 @@ export HA_ACCESS_TOKEN="your-long-lived-access-token"
 ```
 
 #### Local Development (Limited - requires external Home Assistant)
-- `npm start` -- runs the application directly
+- `npm run validate` -- type-checks, tests, and builds the application
+- `npm start` -- runs the compiled application from `dist/`
 - The application will fail with "Could not find expected browser" without Chrome/Chromium installed
 - For testing without a browser: Set `DEBUG=true` to see how far initialization gets
 
@@ -62,8 +64,10 @@ After making code changes, test these scenarios:
 ### Repository Structure
 ```
 /
-├── index.js              # Main application entry point
-├── config.js             # Environment variable configuration
+├── src/                  # Typed application modules and entry point
+├── tests/                # Typed regression test suite
+├── tsconfig.json         # Strict type-checking configuration
+├── tsconfig.build.json   # Production compilation configuration
 ├── package.json          # Node.js dependencies (minimal build config)
 ├── Dockerfile            # Alpine-based container definition
 ├── docker-compose.yml    # Local development setup

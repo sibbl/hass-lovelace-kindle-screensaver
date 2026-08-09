@@ -1,8 +1,5 @@
-import { createRequire } from "module";
 import { describe, expect, it } from "vitest";
-
-const require = createRequire(import.meta.url);
-const { shouldReturnNotModified } = require("./http-cache.js");
+import { shouldReturnNotModified } from "../../src/server/http-cache";
 
 describe("HTTP cache validators", () => {
   it("matches If-None-Match against the current ETag", () => {
@@ -40,7 +37,7 @@ describe("HTTP cache validators", () => {
     ).toBe(false);
   });
 
-  it("matches the If-None-Match wildcard", () => {
+  it("matches wildcards and ignores invalid dates", () => {
     expect(
       shouldReturnNotModified(
         { "if-none-match": "*" },
@@ -48,9 +45,6 @@ describe("HTTP cache validators", () => {
         Date.now()
       )
     ).toBe(true);
-  });
-
-  it("ignores invalid If-Modified-Since values", () => {
     expect(
       shouldReturnNotModified(
         { "if-modified-since": "not a date" },
