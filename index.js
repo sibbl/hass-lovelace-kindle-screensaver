@@ -20,6 +20,7 @@ const {
   withTimeout
 } = require("./operation-timeout");
 const { RenderCoordinator } = require("./render-coordinator");
+const { getAuthenticatedContext } = require("./home-assistant-auth");
 
 // keep state of current battery level and whether the device is charging
 const batteryStore = {};
@@ -39,48 +40,58 @@ async function getFileHash(filePath) {
     return console.error("Please check your configuration");
   }
   
-  // Validate HA_BASE_URL is not the default placeholder
-  if (!config.baseUrl || config.baseUrl.trim() === '') {
-    console.error("ERROR: HA_BASE_URL is not configured.");
-    console.error("Please set HA_BASE_URL to your Home Assistant instance URL.");
-    return console.error("Example: https://homeassistant.local:8123 or http://192.168.1.100:8123");
-  }
-  
-  // Check for common placeholder values
   const placeholderPatterns = [
     'your-path-to-home-assistant',
     'your-hass-instance',
     'your-home-assistant',
     'example.com'
   ];
-  
-  const baseUrlLower = config.baseUrl.toLowerCase();
-  for (const pattern of placeholderPatterns) {
-    if (baseUrlLower.includes(pattern)) {
-      console.error(`ERROR: HA_BASE_URL contains placeholder text: "${config.baseUrl}"`);
-      console.error("Please update HA_BASE_URL to your actual Home Assistant instance URL.");
-      console.error("Examples:");
-      console.error("  - https://homeassistant.local:8123");
-      console.error("  - http://192.168.1.100:8123");
-      return console.error("  - https://my-home.duckdns.org:8123");
+
+  for (const [pageIndex, pageConfig] of config.pages.entries()) {
+    const suffix = pageIndex === 0 ? "" : `_${pageIndex + 1}`;
+    const baseUrlVariable = `HA_BASE_URL${suffix}`;
+    const accessTokenVariable = `HA_ACCESS_TOKEN${suffix}`;
+
+    if (!pageConfig.baseUrl || pageConfig.baseUrl.trim() === '') {
+      console.error(`ERROR: ${baseUrlVariable} is not configured.`);
+      console.error(
+        `Please set ${baseUrlVariable} to the Home Assistant instance URL for page ${pageIndex + 1}.`
+      );
+      return console.error(
+        "Example: https://homeassistant.local:8123 or http://192.168.1.100:8123"
+      );
     }
-  }
-  
-  // Validate HA_ACCESS_TOKEN is provided
-  if (!config.accessToken || config.accessToken.trim() === '') {
-    console.error("ERROR: HA_ACCESS_TOKEN is not configured.");
-    console.error("Please create a long-lived access token in Home Assistant:");
-    console.error("  1. Go to your Home Assistant profile");
-    console.error("  2. Scroll down to 'Long-Lived Access Tokens'");
-    console.error("  3. Click 'Create Token'");
-    return console.error("  4. Copy the token and set it as HA_ACCESS_TOKEN");
-  }
-  
-  for (const i in config.pages) {
-    const pageConfig = config.pages[i];
+
+    const baseUrlLower = pageConfig.baseUrl.toLowerCase();
+    for (const pattern of placeholderPatterns) {
+      if (baseUrlLower.includes(pattern)) {
+        console.error(
+          `ERROR: ${baseUrlVariable} contains placeholder text: "${pageConfig.baseUrl}"`
+        );
+        console.error(
+          `Please update ${baseUrlVariable} to the actual Home Assistant instance URL.`
+        );
+        console.error("Examples:");
+        console.error("  - https://homeassistant.local:8123");
+        console.error("  - http://192.168.1.100:8123");
+        return console.error("  - https://my-home.duckdns.org:8123");
+      }
+    }
+
+    if (!pageConfig.accessToken || pageConfig.accessToken.trim() === '') {
+      console.error(`ERROR: ${accessTokenVariable} is not configured.`);
+      console.error("Please create a long-lived access token in Home Assistant:");
+      console.error("  1. Go to your Home Assistant profile");
+      console.error("  2. Scroll down to 'Long-Lived Access Tokens'");
+      console.error("  3. Click 'Create Token'");
+      return console.error(
+        `  4. Copy the token and set it as ${accessTokenVariable}`
+      );
+    }
+
     if (pageConfig.rotation % 90 > 0) {
       return console.error(
-        `Invalid rotation value for entry ${i + 1}: ${pageConfig.rotation}`
+        `Invalid rotation value for entry ${pageIndex + 1}: ${pageConfig.rotation}`
       );
     }
   }
@@ -381,7 +392,7 @@ async function getFileHash(filePath) {
     console.log(`Server is running at ${port}`);
   });
 
-  // --- Initialize browser and HA auth (non-blocking for HTTP) ---
+  // --- Initialize browser (non-blocking for HTTP) ---
   // If this fails, the HTTP server keeps serving the last good image.
   const initBrowser = async () => {
     if (browser) {
@@ -394,7 +405,6 @@ async function getFileHash(filePath) {
 
     initInProgress = true;
     let nextBrowser = null;
-    let page = null;
     try {
       console.log("Starting browser...");
       nextBrowser = await puppeteer.launch({
@@ -409,35 +419,6 @@ async function getFileHash(filePath) {
         headless: config.debug !== true
       });
 
-      console.log(`Visiting '${config.baseUrl}' to login...`);
-      page = await nextBrowser.newPage();
-      await page.goto(config.baseUrl, {
-        timeout: config.renderingTimeout
-      });
-
-      const hassTokens = {
-        hassUrl: config.baseUrl,
-        access_token: config.accessToken,
-        token_type: "Bearer"
-      };
-
-      console.log("Adding authentication entry to browser's local storage...");
-      await page.evaluate(
-        (hassTokens, selectedLanguage, selectedTheme) => {
-          localStorage.setItem("hassTokens", hassTokens);
-          localStorage.setItem("selectedLanguage", selectedLanguage);
-          if (selectedTheme) {
-            localStorage.setItem("selectedTheme", selectedTheme);
-          }
-        },
-        JSON.stringify(hassTokens),
-        JSON.stringify(config.language),
-        config.theme ? JSON.stringify(config.theme) : null
-      );
-
-      await page.close();
-      page = null;
-
       browser = nextBrowser;
       browserStartedAt = Date.now();
       browser.on("disconnected", () => {
@@ -448,12 +429,7 @@ async function getFileHash(filePath) {
       });
       return browser;
     } catch (err) {
-      console.error("Browser/HA login failed, will retry on next render tick:", err);
-      if (page) {
-        await page.close().catch((closeErr) => {
-          console.error("Failed to close login page after browser init failure:", closeErr);
-        });
-      }
+      console.error("Browser startup failed, will retry on next render tick:", err);
       if (nextBrowser) {
         await nextBrowser.close().catch((closeErr) => {
           console.error("Failed to close browser after init failure:", closeErr);
@@ -511,7 +487,7 @@ async function renderPageAndConvertAsync(browser, pageIndex) {
   const pageConfig = config.pages[pageIndex];
   const pageBatteryStore = batteryStore[pageIndex];
 
-  const url = `${config.baseUrl}${pageConfig.screenShotUrl}`;
+  const url = `${pageConfig.baseUrl}${pageConfig.screenShotUrl}`;
   const outputPath = resolveOutputPath(pageConfig);
   const tempPath = resolveScreenshotTempPath(outputPath);
   const finalTempPath = resolveFinalTempPath(
@@ -575,6 +551,7 @@ async function renderPageAndConvertAsync(browser, pageIndex) {
       sendBatteryLevelToHomeAssistant(
         pageIndex,
         pageBatteryStore,
+        pageConfig.baseUrl,
         pageConfig.batteryWebHook
       );
     }
@@ -590,6 +567,7 @@ async function renderPageAndConvertAsync(browser, pageIndex) {
 function sendBatteryLevelToHomeAssistant(
   pageIndex,
   batteryStore,
+  baseUrl,
   batteryWebHook
 ) {
   const batteryStatus = JSON.stringify(batteryStore);
@@ -601,7 +579,7 @@ function sendBatteryLevelToHomeAssistant(
     },
     rejectUnauthorized: !config.ignoreCertificateErrors
   };
-  const url = `${config.baseUrl}/api/webhook/${batteryWebHook}`;
+  const url = `${baseUrl}/api/webhook/${batteryWebHook}`;
   const httpLib = url.toLowerCase().startsWith("https") ? https : http;
   const req = httpLib.request(url, options, (res) => {
     if (res.statusCode !== 200) {
@@ -714,8 +692,13 @@ function writeJsonResponse(response, statusCode, payload) {
 async function renderUrlToImageAsync(browser, pageConfig, url, path) {
   let page;
   try {
+    const browserContext = await getAuthenticatedContext(
+      browser,
+      pageConfig,
+      config.renderingTimeout
+    );
     page = await withTimeout(
-      browser.newPage(),
+      browserContext.newPage(),
       config.renderingTimeout,
       `open browser page for ${url}`
     );

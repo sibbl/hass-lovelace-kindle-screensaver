@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+* Support rendering pages from multiple Home Assistant instances with numbered `HA_BASE_URL_n`, `HA_ACCESS_TOKEN_n`, `HA_THEME_n`, and `LANGUAGE_n` variables
+* Isolate Home Assistant sessions in browser contexts while sharing one Chromium process
+
 ## 1.0.19
 
 ### Added
