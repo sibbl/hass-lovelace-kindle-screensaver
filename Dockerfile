@@ -1,29 +1,38 @@
-FROM node:16-alpine3.17
+FROM node:22-alpine3.22 AS build
+
+WORKDIR /app
+
+COPY package*.json ./
+COPY tsconfig*.json ./
+
+RUN npm ci
+
+COPY src ./src
+
+RUN npm run build && npm prune --omit=dev
+
+FROM node:22-alpine3.22
 
 WORKDIR /app
 
 RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \    
-    font-noto-emoji \
-    font-noto-cjk \
-    freetype-dev \
-    harfbuzz \
     ca-certificates \
-    ttf-freefont \
-    imagemagick
+    chromium \
+    font-noto-cjk \
+    font-noto-emoji \
+    freetype \
+    harfbuzz \
+    imagemagick \
+    nss \
+    ttf-freefont
 
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
     USE_IMAGE_MAGICK=true
 
-COPY package*.json ./
 COPY local.conf /etc/fonts/local.conf
-
-RUN npm ci
-
-COPY *.js ./
+COPY package.json ./
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
 
 EXPOSE 5000
 

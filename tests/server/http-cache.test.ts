@@ -1,17 +1,10 @@
-import { createRequire } from "module";
 import { describe, expect, it } from "vitest";
-
-const require = createRequire(import.meta.url);
-const { shouldReturnNotModified } = require("./http-cache.js");
+import { shouldReturnNotModified } from "../../src/server/http-cache";
 
 describe("HTTP cache validators", () => {
   it("matches If-None-Match against the current ETag", () => {
     expect(
-      shouldReturnNotModified(
-        { "if-none-match": '"old", "current"' },
-        '"current"',
-        Date.now()
-      )
+      shouldReturnNotModified({ "if-none-match": '"old", "current"' }, '"current"', Date.now()),
     ).toBe(true);
   });
 
@@ -21,8 +14,8 @@ describe("HTTP cache validators", () => {
       shouldReturnNotModified(
         { "if-modified-since": new Date(modified).toUTCString() },
         '"current"',
-        modified
-      )
+        modified,
+      ),
     ).toBe(true);
   });
 
@@ -32,11 +25,18 @@ describe("HTTP cache validators", () => {
       shouldReturnNotModified(
         {
           "if-none-match": '"old"',
-          "if-modified-since": new Date(modified - 1000).toUTCString()
+          "if-modified-since": new Date(modified - 1000).toUTCString(),
         },
         '"current"',
-        modified
-      )
+        modified,
+      ),
+    ).toBe(false);
+  });
+
+  it("matches wildcards and ignores invalid dates", () => {
+    expect(shouldReturnNotModified({ "if-none-match": "*" }, '"current"', Date.now())).toBe(true);
+    expect(
+      shouldReturnNotModified({ "if-modified-since": "not a date" }, '"current"', Date.now()),
     ).toBe(false);
   });
 });
