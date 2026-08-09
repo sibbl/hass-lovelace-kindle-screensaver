@@ -14,7 +14,7 @@ export function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,
   description: string,
-  onTimeout?: () => void
+  onTimeout?: () => void,
 ): Promise<T> {
   let timeoutId: NodeJS.Timeout | undefined;
   const timeoutPromise = new Promise<never>((_resolve, reject) => {

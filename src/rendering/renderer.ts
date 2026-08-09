@@ -12,7 +12,7 @@ import {
   getGraphicsMagickFormat,
   resolveFinalTempPath,
   resolveOutputPath,
-  resolveScreenshotTempPath
+  resolveScreenshotTempPath,
 } from "./image-output";
 
 export class Renderer {
@@ -25,7 +25,7 @@ export class Renderer {
     config: AppConfig,
     homeAssistantAuth: HomeAssistantAuth,
     batteryManager: BatteryManager,
-    logger: Logger = console
+    logger: Logger = console,
   ) {
     this.config = config;
     this.homeAssistantAuth = homeAssistantAuth;
@@ -59,10 +59,7 @@ export class Renderer {
     const url = `${pageConfig.baseUrl}${pageConfig.screenShotUrl}`;
     const outputPath = resolveOutputPath(pageConfig);
     const tempPath = resolveScreenshotTempPath(outputPath);
-    const finalTempPath = resolveFinalTempPath(
-      outputPath,
-      pageConfig.imageFormat
-    );
+    const finalTempPath = resolveFinalTempPath(outputPath, pageConfig.imageFormat);
 
     try {
       await fsExtra.ensureDir(path.dirname(outputPath));
@@ -78,7 +75,7 @@ export class Renderer {
       await withTimeout(
         this.convertImage(pageConfig, tempPath, finalTempPath),
         this.config.renderingTimeout,
-        `convert ${url}`
+        `convert ${url}`,
       );
 
       const hasChanged = await this.hasImageChanged(finalTempPath, outputPath);
@@ -86,17 +83,14 @@ export class Renderer {
         await withTimeout(
           fsExtra.move(finalTempPath, outputPath, { overwrite: true }),
           this.config.renderingTimeout,
-          `replace output for ${url}`
+          `replace output for ${url}`,
         );
       }
 
       this.logger.log(`Finished ${url}`);
       this.batteryManager.sendAfterRender(pageIndex, pageConfig);
     } catch (error: unknown) {
-      this.logger.error(
-        `Render failed for ${url}, keeping previous image:`,
-        error
-      );
+      this.logger.error(`Render failed for ${url}, keeping previous image:`, error);
       throw error;
     } finally {
       await fsExtra.remove(tempPath).catch(() => undefined);
@@ -108,59 +102,55 @@ export class Renderer {
     browser: Browser,
     pageConfig: PageConfig,
     url: string,
-    screenshotPath: string
+    screenshotPath: string,
   ): Promise<void> {
     let page: Page | undefined;
     try {
-      const browserContext =
-        await this.homeAssistantAuth.getAuthenticatedContext(
-          browser,
-          pageConfig,
-          this.config.renderingTimeout
-        );
+      const browserContext = await this.homeAssistantAuth.getAuthenticatedContext(
+        browser,
+        pageConfig,
+        this.config.renderingTimeout,
+      );
       page = await withTimeout(
         browserContext.newPage(),
         this.config.renderingTimeout,
-        `open browser page for ${url}`
+        `open browser page for ${url}`,
       );
       await withTimeout(
         page.emulateMediaFeatures([
           {
             name: "prefers-color-scheme",
-            value: pageConfig.prefersColorScheme
-          }
+            value: pageConfig.prefersColorScheme,
+          },
         ]),
         this.config.renderingTimeout,
-        `emulate media for ${url}`
+        `emulate media for ${url}`,
       );
 
       let size = { ...pageConfig.renderingScreenSize };
       if (pageConfig.rotation % 180 > 0) {
         size = {
           width: size.height,
-          height: size.width
+          height: size.width,
         };
       }
 
       await withTimeout(
         page.setViewport(size),
         this.config.renderingTimeout,
-        `set viewport for ${url}`
+        `set viewport for ${url}`,
       );
       const navigationStartedAt = Date.now();
       this.logger.log(`Navigating to ${url}...`);
       await page.goto(url, {
         waitUntil: ["domcontentloaded", "load", "networkidle0"],
-        timeout: this.config.renderingTimeout
+        timeout: this.config.renderingTimeout,
       });
 
       const navigationDuration = Date.now() - navigationStartedAt;
       this.logger.log(`Waiting for home-assistant root on ${url}...`);
       await page.waitForSelector("home-assistant", {
-        timeout: Math.max(
-          this.config.renderingTimeout - navigationDuration,
-          1000
-        )
+        timeout: Math.max(this.config.renderingTimeout - navigationDuration, 1000),
       });
 
       await withTimeout(
@@ -169,10 +159,10 @@ export class Renderer {
             body {
               zoom: ${pageConfig.scaling * 100}%;
               overflow: hidden;
-            }`
+            }`,
         }),
         this.config.renderingTimeout,
-        `add page style for ${url}`
+        `add page style for ${url}`,
       );
 
       if (pageConfig.renderingDelay > 0) {
@@ -187,11 +177,11 @@ export class Renderer {
           clip: {
             x: 0,
             y: 0,
-            ...size
-          }
+            ...size,
+          },
         }),
         this.config.renderingTimeout,
-        `screenshot ${url}`
+        `screenshot ${url}`,
       );
     } catch (error: unknown) {
       this.logger.error(`Failed to render ${url}:`, error);
@@ -201,7 +191,7 @@ export class Renderer {
         await withTimeout(page.close(), 5000, `close browser page for ${url}`).catch(
           (error: unknown) => {
             this.logger.error(`Failed to close browser page for ${url}:`, error);
-          }
+          },
         );
       }
     }
@@ -210,13 +200,13 @@ export class Renderer {
   private convertImage(
     pageConfig: PageConfig,
     inputPath: string,
-    outputPath: string
+    outputPath: string,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       let gmInstance = gm(inputPath)
         .options({
           imageMagick: this.config.useImageMagick,
-          timeout: this.config.renderingTimeout
+          timeout: this.config.renderingTimeout,
         })
         .setFormat(getGraphicsMagickFormat(pageConfig.imageFormat))
         .gamma(pageConfig.removeGamma ? 1.0 / 2.2 : 1.0)
@@ -242,10 +232,7 @@ export class Renderer {
     });
   }
 
-  private async hasImageChanged(
-    finalTempPath: string,
-    outputPath: string
-  ): Promise<boolean> {
+  private async hasImageChanged(finalTempPath: string, outputPath: string): Promise<boolean> {
     if (!(await fsExtra.pathExists(outputPath))) {
       this.logger.log(`First render for ${outputPath}, creating image`);
       return true;
@@ -253,7 +240,7 @@ export class Renderer {
 
     const [newHash, existingHash] = await Promise.all([
       getFileHash(finalTempPath),
-      getFileHash(outputPath)
+      getFileHash(outputPath),
     ]);
     if (newHash && existingHash && newHash === existingHash) {
       this.logger.log(`Image unchanged for ${outputPath}, skipping update`);

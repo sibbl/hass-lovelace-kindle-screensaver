@@ -4,7 +4,7 @@ const PLACEHOLDER_PATTERNS = [
   "your-path-to-home-assistant",
   "your-hass-instance",
   "your-home-assistant",
-  "example.com"
+  "example.com",
 ];
 
 export function validateConfig(config: AppConfig): string[] {
@@ -21,7 +21,7 @@ export function validateConfig(config: AppConfig): string[] {
       return [
         `ERROR: ${baseUrlVariable} is not configured.`,
         `Please set ${baseUrlVariable} to the Home Assistant instance URL for page ${pageIndex + 1}.`,
-        "Example: https://homeassistant.local:8123 or http://192.168.1.100:8123"
+        "Example: https://homeassistant.local:8123 or http://192.168.1.100:8123",
       ];
     }
 
@@ -33,7 +33,7 @@ export function validateConfig(config: AppConfig): string[] {
         "Examples:",
         "  - https://homeassistant.local:8123",
         "  - http://192.168.1.100:8123",
-        "  - https://my-home.duckdns.org:8123"
+        "  - https://my-home.duckdns.org:8123",
       ];
     }
 
@@ -44,14 +44,12 @@ export function validateConfig(config: AppConfig): string[] {
         "  1. Go to your Home Assistant profile",
         "  2. Scroll down to 'Long-Lived Access Tokens'",
         "  3. Click 'Create Token'",
-        `  4. Copy the token and set it as ${accessTokenVariable}`
+        `  4. Copy the token and set it as ${accessTokenVariable}`,
       ];
     }
 
     if (pageConfig.rotation % 90 > 0) {
-      return [
-        `Invalid rotation value for entry ${pageIndex + 1}: ${pageConfig.rotation}`
-      ];
+      return [`Invalid rotation value for entry ${pageIndex + 1}: ${pageConfig.rotation}`];
     }
   }
 

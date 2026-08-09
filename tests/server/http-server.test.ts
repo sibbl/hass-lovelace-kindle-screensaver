@@ -18,7 +18,7 @@ interface HttpResponse {
 function request(
   server: Server,
   requestPath: string,
-  options: { method?: string; headers?: http.OutgoingHttpHeaders } = {}
+  options: { method?: string; headers?: http.OutgoingHttpHeaders } = {},
 ): Promise<HttpResponse> {
   const address = server.address();
   if (!address || typeof address === "string") {
@@ -32,7 +32,7 @@ function request(
         port: address.port,
         path: requestPath,
         method: options.method ?? "GET",
-        headers: options.headers
+        headers: options.headers,
       },
       (response) => {
         const chunks: Buffer[] = [];
@@ -41,10 +41,10 @@ function request(
           resolve({
             statusCode: response.statusCode ?? 0,
             headers: response.headers,
-            body: Buffer.concat(chunks)
+            body: Buffer.concat(chunks),
           });
         });
-      }
+      },
     );
     clientRequest.on("error", reject);
     clientRequest.end();
@@ -57,7 +57,7 @@ describe("application HTTP server", () => {
   let config: AppConfig;
   let requestRender: (
     pageNumber: number | null,
-    options: { resetBrowserCache: boolean }
+    options: { resetBrowserCache: boolean },
   ) => Promise<RenderResult>;
   let clearBrowserCache: () => Promise<RenderResult>;
 
@@ -65,16 +65,10 @@ describe("application HTTP server", () => {
     tempDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "kindle-server-"));
     config = createAppConfig({
       port: 0,
-      pages: [
-        createPageConfig({ outputPath: path.join(tempDirectory, "cover") })
-      ]
+      pages: [createPageConfig({ outputPath: path.join(tempDirectory, "cover") })],
     });
-    requestRender = vi.fn(
-      async (): Promise<RenderResult> => ({ status: "ok" })
-    );
-    clearBrowserCache = vi.fn(
-      async (): Promise<RenderResult> => ({ status: "ok" })
-    );
+    requestRender = vi.fn(async (): Promise<RenderResult> => ({ status: "ok" }));
+    clearBrowserCache = vi.fn(async (): Promise<RenderResult> => ({ status: "ok" }));
   });
 
   afterEach(async () => {
@@ -92,18 +86,18 @@ describe("application HTTP server", () => {
       config: customConfig,
       batteryManager: new BatteryManager(false, {
         log: vi.fn(),
-        error: vi.fn()
+        error: vi.fn(),
       }),
       healthcheckMaxAge: 60000,
       appStartedAt: Date.now(),
       getLastSuccessfulRenderAt: () => null,
       getRenderState: () => ({
         renderInProgress: false,
-        renderInProgressFor: null
+        renderInProgressFor: null,
       }),
       requestRender,
       clearBrowserCache,
-      logger: { log: vi.fn(), error: vi.fn() }
+      logger: { log: vi.fn(), error: vi.fn() },
     });
     server = applicationServer.start();
     if (!server.listening) {
@@ -119,9 +113,9 @@ describe("application HTTP server", () => {
         createPageConfig({
           outputPath: path.join(tempDirectory, "cover"),
           httpAuthUser: "admin",
-          httpAuthPassword: "secret"
-        })
-      ]
+          httpAuthPassword: "secret",
+        }),
+      ],
     };
     const runningServer = await startServer(authenticatedConfig);
 
@@ -140,7 +134,7 @@ describe("application HTTP server", () => {
 
     const first = await request(runningServer, "/");
     const conditional = await request(runningServer, "/", {
-      headers: { "If-None-Match": first.headers.etag }
+      headers: { "If-None-Match": first.headers.etag },
     });
     const head = await request(runningServer, "/", { method: "HEAD" });
 
@@ -157,15 +151,15 @@ describe("application HTTP server", () => {
     const runningServer = await startServer();
 
     const render = await request(runningServer, "/render/1?clearCache=1", {
-      method: "POST"
+      method: "POST",
     });
     const clear = await request(runningServer, "/cache/clear", {
-      method: "POST"
+      method: "POST",
     });
 
     expect(render.statusCode).toBe(200);
     expect(requestRender).toHaveBeenCalledWith(1, {
-      resetBrowserCache: true
+      resetBrowserCache: true,
     });
     expect(clear.statusCode).toBe(200);
     expect(clearBrowserCache).toHaveBeenCalledOnce();

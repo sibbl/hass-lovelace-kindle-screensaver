@@ -3,9 +3,8 @@ import type { AppConfig, Logger } from "../types";
 
 export function getRenderJobTimeout(config: AppConfig): number {
   const pageTimeoutBudget = config.pages.reduce(
-    (total, pageConfig) =>
-      total + config.renderingTimeout + pageConfig.renderingDelay + 30000,
-    0
+    (total, pageConfig) => total + config.renderingTimeout + pageConfig.renderingDelay + 30000,
+    0,
   );
 
   return Math.max(pageTimeoutBudget, config.renderingTimeout + 30000);
@@ -14,7 +13,7 @@ export function getRenderJobTimeout(config: AppConfig): number {
 export function getHealthcheckMaxAge(
   config: AppConfig,
   renderJobTimeout: number,
-  logger: Logger = console
+  logger: Logger = console,
 ): number {
   const defaultCronInterval = 60000;
 
@@ -31,10 +30,7 @@ export function getHealthcheckMaxAge(
       }
     }
   } catch (error: unknown) {
-    logger.error(
-      "Failed to derive healthcheck age from cron, using fallback:",
-      error
-    );
+    logger.error("Failed to derive healthcheck age from cron, using fallback:", error);
   }
 
   return defaultCronInterval + renderJobTimeout;

@@ -20,13 +20,13 @@ function createMockBrowser(): MockBrowser {
       }
       return browser;
     }),
-    process: vi.fn(() => null)
+    process: vi.fn(() => null),
   } as unknown as Browser;
 
   return {
     browser,
     close,
-    disconnect: () => disconnected?.()
+    disconnect: () => disconnected?.(),
   };
 }
 
@@ -43,24 +43,20 @@ describe("browser manager", () => {
         language: "de",
         ignoreCertificateErrors: true,
         debug: true,
-        browserLaunchTimeout: 1234
+        browserLaunchTimeout: 1234,
       }),
       { log: vi.fn(), error: vi.fn() },
-      launch
+      launch,
     );
 
     await expect(manager.initialize()).resolves.toBe(mockBrowser.browser);
     expect(launch).toHaveBeenCalledWith(
       expect.objectContaining({
-        args: expect.arrayContaining([
-          "--no-sandbox",
-          "--lang=de",
-          "--ignore-certificate-errors"
-        ]),
+        args: expect.arrayContaining(["--no-sandbox", "--lang=de", "--ignore-certificate-errors"]),
         defaultViewport: null,
         timeout: 1234,
-        headless: false
-      })
+        headless: false,
+      }),
     );
   });
 
@@ -71,17 +67,11 @@ describe("browser manager", () => {
       .fn()
       .mockResolvedValueOnce(first.browser)
       .mockResolvedValueOnce(second.browser);
-    const manager = new BrowserManager(
-      createAppConfig(),
-      { log: vi.fn(), error: vi.fn() },
-      launch
-    );
+    const manager = new BrowserManager(createAppConfig(), { log: vi.fn(), error: vi.fn() }, launch);
 
     await expect(manager.ensureBrowser()).resolves.toBe(first.browser);
     await expect(manager.ensureBrowser()).resolves.toBe(first.browser);
-    await expect(
-      manager.ensureBrowser({ resetBrowserCache: true })
-    ).resolves.toBe(second.browser);
+    await expect(manager.ensureBrowser({ resetBrowserCache: true })).resolves.toBe(second.browser);
 
     expect(launch).toHaveBeenCalledTimes(2);
     expect(first.close).toHaveBeenCalledOnce();
@@ -99,7 +89,7 @@ describe("browser manager", () => {
     const manager = new BrowserManager(
       createAppConfig({ browserCacheTtl: 1000 }),
       { log: vi.fn(), error: vi.fn() },
-      launch
+      launch,
     );
 
     await manager.ensureBrowser();
@@ -116,11 +106,7 @@ describe("browser manager", () => {
       .fn()
       .mockResolvedValueOnce(first.browser)
       .mockResolvedValueOnce(second.browser);
-    const manager = new BrowserManager(
-      createAppConfig(),
-      { log: vi.fn(), error: vi.fn() },
-      launch
-    );
+    const manager = new BrowserManager(createAppConfig(), { log: vi.fn(), error: vi.fn() }, launch);
 
     await manager.ensureBrowser();
     first.disconnect();

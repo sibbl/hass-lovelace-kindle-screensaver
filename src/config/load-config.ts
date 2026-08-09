@@ -1,14 +1,10 @@
-import type {
-  AppConfig,
-  HomeAssistantTheme,
-  PageConfig
-} from "../types";
+import type { AppConfig, HomeAssistantTheme, PageConfig } from "../types";
 
 function getEnvironmentVariable(
   environment: NodeJS.ProcessEnv,
   key: string,
   suffix: string,
-  fallbackValue?: string
+  fallbackValue?: string,
 ): string | undefined {
   const value = environment[`${key}${suffix}`];
   if (value !== undefined) {
@@ -17,10 +13,7 @@ function getEnvironmentVariable(
   return fallbackValue ?? environment[key];
 }
 
-function parseInteger(
-  value: string | undefined,
-  fallbackValue: number
-): number {
+function parseInteger(value: string | undefined, fallbackValue: number): number {
   if (value === undefined || value === "") {
     return fallbackValue;
   }
@@ -28,10 +21,7 @@ function parseInteger(
   return Number.isFinite(parsed) ? parsed : fallbackValue;
 }
 
-function parseNonNegativeInteger(
-  value: string | undefined,
-  fallbackValue: number
-): number {
+function parseNonNegativeInteger(value: string | undefined, fallbackValue: number): number {
   const parsed = parseInteger(value, fallbackValue);
   return parsed >= 0 ? parsed : fallbackValue;
 }
@@ -64,99 +54,55 @@ function getPagesConfig(environment: NodeJS.ProcessEnv): PageConfig[] {
 
     pages.push({
       baseUrl: getEnvironmentVariable(environment, "HA_BASE_URL", suffix) ?? "",
-      accessToken:
-        getEnvironmentVariable(environment, "HA_ACCESS_TOKEN", suffix) ?? "",
+      accessToken: getEnvironmentVariable(environment, "HA_ACCESS_TOKEN", suffix) ?? "",
       screenShotUrl,
-      language:
-        getEnvironmentVariable(environment, "LANGUAGE", suffix) || "en",
-      theme: parseTheme(
-        getEnvironmentVariable(environment, "HA_THEME", suffix)
-      ),
-      imageFormat:
-        getEnvironmentVariable(environment, "IMAGE_FORMAT", suffix) || "png",
+      language: getEnvironmentVariable(environment, "LANGUAGE", suffix) || "en",
+      theme: parseTheme(getEnvironmentVariable(environment, "HA_THEME", suffix)),
+      imageFormat: getEnvironmentVariable(environment, "IMAGE_FORMAT", suffix) || "png",
       outputPath:
-        getEnvironmentVariable(
-          environment,
-          "OUTPUT_PATH",
-          suffix,
-          `output/cover${suffix}`
-        ) ?? `output/cover${suffix}`,
+        getEnvironmentVariable(environment, "OUTPUT_PATH", suffix, `output/cover${suffix}`) ??
+        `output/cover${suffix}`,
       renderingDelay: parseNumber(
         getEnvironmentVariable(environment, "RENDERING_DELAY", suffix),
-        0
+        0,
       ),
       renderingScreenSize: {
         height: parseNumber(
-          getEnvironmentVariable(
-            environment,
-            "RENDERING_SCREEN_HEIGHT",
-            suffix
-          ),
-          800
+          getEnvironmentVariable(environment, "RENDERING_SCREEN_HEIGHT", suffix),
+          800,
         ),
         width: parseNumber(
-          getEnvironmentVariable(
-            environment,
-            "RENDERING_SCREEN_WIDTH",
-            suffix
-          ),
-          600
-        )
+          getEnvironmentVariable(environment, "RENDERING_SCREEN_WIDTH", suffix),
+          600,
+        ),
       },
       grayscaleDepth: parseNumber(
         getEnvironmentVariable(environment, "GRAYSCALE_DEPTH", suffix),
-        8
+        8,
       ),
-      removeGamma: parseBoolean(
-        getEnvironmentVariable(environment, "REMOVE_GAMMA", suffix)
-      ),
-      blackLevel:
-        getEnvironmentVariable(environment, "BLACK_LEVEL", suffix) || "0%",
-      whiteLevel:
-        getEnvironmentVariable(environment, "WHITE_LEVEL", suffix) || "100%",
-      dither: parseBoolean(
-        getEnvironmentVariable(environment, "DITHER", suffix)
-      ),
-      colorMode:
-        getEnvironmentVariable(environment, "COLOR_MODE", suffix) ||
-        "GrayScale",
+      removeGamma: parseBoolean(getEnvironmentVariable(environment, "REMOVE_GAMMA", suffix)),
+      blackLevel: getEnvironmentVariable(environment, "BLACK_LEVEL", suffix) || "0%",
+      whiteLevel: getEnvironmentVariable(environment, "WHITE_LEVEL", suffix) || "100%",
+      dither: parseBoolean(getEnvironmentVariable(environment, "DITHER", suffix)),
+      colorMode: getEnvironmentVariable(environment, "COLOR_MODE", suffix) || "GrayScale",
       prefersColorScheme:
-        getEnvironmentVariable(environment, "PREFERS_COLOR_SCHEME", suffix) ||
-        "light",
-      rotation: parseNumber(
-        getEnvironmentVariable(environment, "ROTATION", suffix),
-        0
-      ),
-      scaling: parseNumber(
-        getEnvironmentVariable(environment, "SCALING", suffix),
-        1
-      ),
-      batteryWebHook:
-        getEnvironmentVariable(environment, "HA_BATTERY_WEBHOOK", suffix) ||
-        null,
-      saturation: parseNumber(
-        getEnvironmentVariable(environment, "SATURATION", suffix),
-        1
-      ),
-      contrast: parseNumber(
-        getEnvironmentVariable(environment, "CONTRAST", suffix),
-        1
-      ),
-      httpAuthUser:
-        getEnvironmentVariable(environment, "HTTP_AUTH_USER", suffix) || null,
+        getEnvironmentVariable(environment, "PREFERS_COLOR_SCHEME", suffix) || "light",
+      rotation: parseNumber(getEnvironmentVariable(environment, "ROTATION", suffix), 0),
+      scaling: parseNumber(getEnvironmentVariable(environment, "SCALING", suffix), 1),
+      batteryWebHook: getEnvironmentVariable(environment, "HA_BATTERY_WEBHOOK", suffix) || null,
+      saturation: parseNumber(getEnvironmentVariable(environment, "SATURATION", suffix), 1),
+      contrast: parseNumber(getEnvironmentVariable(environment, "CONTRAST", suffix), 1),
+      httpAuthUser: getEnvironmentVariable(environment, "HTTP_AUTH_USER", suffix) || null,
       httpAuthPassword:
-        getEnvironmentVariable(environment, "HTTP_AUTH_PASSWORD", suffix) ||
-        null
+        getEnvironmentVariable(environment, "HTTP_AUTH_PASSWORD", suffix) || null,
     });
   }
 }
 
-export function loadConfig(
-  environment: NodeJS.ProcessEnv = process.env
-): AppConfig {
+export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppConfig {
   const browserCacheTtlSeconds = parseNonNegativeInteger(
     environment.BROWSER_CACHE_TTL_SECONDS,
-    86400
+    86400,
   );
 
   return {
@@ -167,18 +113,14 @@ export function loadConfig(
     pages: getPagesConfig(environment),
     port: parseInteger(environment.PORT, 5000),
     renderingTimeout: parseInteger(environment.RENDERING_TIMEOUT, 10000),
-    browserLaunchTimeout: parseInteger(
-      environment.BROWSER_LAUNCH_TIMEOUT,
-      30000
-    ),
+    browserLaunchTimeout: parseInteger(environment.BROWSER_LAUNCH_TIMEOUT, 30000),
     browserCacheTtlSeconds,
     browserCacheTtl: browserCacheTtlSeconds * 1000,
     language: environment.LANGUAGE || "en",
     theme: parseTheme(environment.HA_THEME),
     debug: environment.DEBUG === "true",
-    ignoreCertificateErrors:
-      environment.UNSAFE_IGNORE_CERTIFICATE_ERRORS === "true",
+    ignoreCertificateErrors: environment.UNSAFE_IGNORE_CERTIFICATE_ERRORS === "true",
     httpAuthUser: environment.HTTP_AUTH_USER || null,
-    httpAuthPassword: environment.HTTP_AUTH_PASSWORD || null
+    httpAuthPassword: environment.HTTP_AUTH_PASSWORD || null,
   };
 }

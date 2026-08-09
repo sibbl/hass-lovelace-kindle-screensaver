@@ -2,16 +2,20 @@
   "name": "hass-lovelace-kindle-screensaver",
   "version": "1.2.0",
   "description": "",
+  "license": "MIT",
+  "author": "sibbl",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "lint": "oxlint --deny-warnings",
+    "lint:fix": "oxlint --fix",
     "start": "node dist/index.js",
     "test": "vitest run",
     "typecheck": "tsc --project tsconfig.json",
-    "validate": "npm run typecheck && npm test && npm run build"
+    "validate": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build"
   },
-  "author": "sibbl",
-  "license": "MIT",
   "dependencies": {
     "cron": "^1.8.2",
     "dotenv": "^16.6.1",
@@ -24,6 +28,8 @@
     "@types/fs-extra": "^11.0.4",
     "@types/gm": "^1.25.4",
     "@types/node": "^16.18.126",
+    "oxfmt": "^0.62.0",
+    "oxlint": "^1.77.0",
     "typescript": "^5.9.3",
     "vite": "^4.5.14",
     "vitest": "^0.34.6"

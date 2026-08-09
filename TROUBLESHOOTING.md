@@ -5,6 +5,7 @@
 ### What is this error?
 
 When you see an error like:
+
 ```
 Error: net::ERR_NAME_NOT_RESOLVED at https://your-path-to-home-assistant:8123
 ```
@@ -30,20 +31,25 @@ This error typically occurs in the following scenarios:
 Replace the placeholder URL with your actual Home Assistant instance URL. Here are some examples:
 
 **For local network access:**
+
 ```yaml
 HA_BASE_URL: "http://homeassistant.local:8123"
 ```
+
 or
+
 ```yaml
 HA_BASE_URL: "http://192.168.1.100:8123"
 ```
 
 **For remote access (with SSL):**
+
 ```yaml
 HA_BASE_URL: "https://my-home.duckdns.org:8123"
 ```
 
 **For Home Assistant supervised installations:**
+
 - If running as an add-on, you can use: `http://supervisor/core`
 - This uses Home Assistant's internal networking
 
@@ -71,6 +77,7 @@ After updating your configuration, restart the add-on for the changes to take ef
 #### Running as Home Assistant Add-on
 
 When running as a Home Assistant add-on, use the internal URL:
+
 ```yaml
 HA_BASE_URL: "http://supervisor/core"
 HA_SCREENSHOT_URL: "/lovelace/0"

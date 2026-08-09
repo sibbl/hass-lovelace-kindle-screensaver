@@ -1,13 +1,10 @@
-import {
-  OperationTimeoutError,
-  withTimeout
-} from "../shared/operation-timeout";
+import { OperationTimeoutError, withTimeout } from "../shared/operation-timeout";
 import type {
   EnsureBrowserOptions,
   Logger,
   RenderResult,
   RenderRunOptions,
-  RenderState
+  RenderState,
 } from "../types";
 
 export interface RenderCoordinatorDependencies<TBrowser> {
@@ -20,9 +17,7 @@ export interface RenderCoordinatorDependencies<TBrowser> {
 
 export class RenderCoordinator<TBrowser> {
   private readonly renderJobTimeout: number;
-  private readonly ensureBrowser: (
-    options: EnsureBrowserOptions
-  ) => Promise<TBrowser>;
+  private readonly ensureBrowser: (options: EnsureBrowserOptions) => Promise<TBrowser>;
   private readonly closeBrowser: (reason: string) => Promise<void>;
   private readonly onSuccess: (() => void) | undefined;
   private readonly logger: Logger;
@@ -36,7 +31,7 @@ export class RenderCoordinator<TBrowser> {
     ensureBrowser,
     closeBrowser,
     onSuccess,
-    logger = console
+    logger = console,
   }: RenderCoordinatorDependencies<TBrowser>) {
     this.renderJobTimeout = renderJobTimeout;
     this.ensureBrowser = ensureBrowser;
@@ -52,21 +47,20 @@ export class RenderCoordinator<TBrowser> {
   public getState(now = Date.now()): RenderState {
     return {
       renderInProgress: this.renderInProgress,
-      renderInProgressFor:
-        this.renderStartedAt === null ? null : now - this.renderStartedAt
+      renderInProgressFor: this.renderStartedAt === null ? null : now - this.renderStartedAt,
     };
   }
 
   public run(
     label: string,
     work: (browser: TBrowser) => Promise<void>,
-    options: RenderRunOptions = {}
+    options: RenderRunOptions = {},
   ): Promise<RenderResult> {
     if (options.skipIfBusy && this.hasWork()) {
       this.logger.log(`Render already queued or in progress, skipping ${label}`);
       return Promise.resolve({
         status: "skipped",
-        reason: "render_in_progress"
+        reason: "render_in_progress",
       });
     }
 
@@ -85,7 +79,7 @@ export class RenderCoordinator<TBrowser> {
   private async execute(
     label: string,
     work: (browser: TBrowser) => Promise<void>,
-    options: RenderRunOptions
+    options: RenderRunOptions,
   ): Promise<RenderResult> {
     this.renderInProgress = true;
     this.renderStartedAt = Date.now();
@@ -93,7 +87,7 @@ export class RenderCoordinator<TBrowser> {
 
     try {
       const browser = await this.ensureBrowser({
-        resetBrowserCache: options.resetBrowserCache === true
+        resetBrowserCache: options.resetBrowserCache === true,
       });
       await withTimeout(work(browser), this.renderJobTimeout, label, () => {
         timedOut = true;
@@ -111,7 +105,7 @@ export class RenderCoordinator<TBrowser> {
       }
       return {
         status: "failed",
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     } finally {
       this.renderInProgress = false;

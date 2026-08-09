@@ -9,7 +9,7 @@ describe("configuration validation", () => {
 
   it("requires at least one screenshot page", () => {
     expect(validateConfig(createAppConfig({ pages: [] }))).toEqual([
-      "Please check your configuration"
+      "Please check your configuration",
     ]);
   });
 
@@ -17,22 +17,20 @@ describe("configuration validation", () => {
     const config = createAppConfig({
       pages: [
         createPageConfig(),
-        createPageConfig({ baseUrl: "", screenShotUrl: "/lovelace/second" })
-      ]
+        createPageConfig({ baseUrl: "", screenShotUrl: "/lovelace/second" }),
+      ],
     });
 
-    expect(validateConfig(config)[0]).toBe(
-      "ERROR: HA_BASE_URL_2 is not configured."
-    );
+    expect(validateConfig(config)[0]).toBe("ERROR: HA_BASE_URL_2 is not configured.");
   });
 
   it("rejects placeholder URLs", () => {
     const config = createAppConfig({
       pages: [
         createPageConfig({
-          baseUrl: "https://your-home-assistant.example.com:8123"
-        })
-      ]
+          baseUrl: "https://your-home-assistant.example.com:8123",
+        }),
+      ],
     });
 
     expect(validateConfig(config)[0]).toContain("contains placeholder text");
@@ -40,11 +38,9 @@ describe("configuration validation", () => {
 
   it("rejects rotations that are not multiples of 90 degrees", () => {
     const config = createAppConfig({
-      pages: [createPageConfig({ rotation: 45 })]
+      pages: [createPageConfig({ rotation: 45 })],
     });
 
-    expect(validateConfig(config)).toEqual([
-      "Invalid rotation value for entry 1: 45"
-    ]);
+    expect(validateConfig(config)).toEqual(["Invalid rotation value for entry 1: 45"]);
   });
 });

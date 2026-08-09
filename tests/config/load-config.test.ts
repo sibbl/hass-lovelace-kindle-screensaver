@@ -22,7 +22,7 @@ describe("configuration loading", () => {
       HA_SCREENSHOT_URL: "/lovelace/kindle",
       HA_ACCESS_TOKEN: "legacy-token",
       HA_THEME: "eink",
-      LANGUAGE: "de"
+      LANGUAGE: "de",
     });
 
     expect(config.baseUrl).toBe("https://home.example.test");
@@ -33,7 +33,7 @@ describe("configuration loading", () => {
       screenShotUrl: "/lovelace/kindle",
       accessToken: "legacy-token",
       language: "de",
-      theme: { theme: "eink" }
+      theme: { theme: "eink" },
     });
   });
 
@@ -42,14 +42,14 @@ describe("configuration loading", () => {
       HA_BASE_URL: "https://home.example.test",
       HA_SCREENSHOT_URL: "/lovelace/first",
       HA_SCREENSHOT_URL_2: "/lovelace/second",
-      HA_ACCESS_TOKEN: "shared-token"
+      HA_ACCESS_TOKEN: "shared-token",
     });
 
     expect(config.pages).toHaveLength(2);
     expect(config.pages[1]).toMatchObject({
       baseUrl: "https://home.example.test",
       accessToken: "shared-token",
-      language: "en"
+      language: "en",
     });
   });
 
@@ -62,7 +62,7 @@ describe("configuration loading", () => {
       HA_SCREENSHOT_URL_2: "/lovelace/second",
       HA_ACCESS_TOKEN_2: "second-token",
       HA_THEME_2: "night",
-      LANGUAGE_2: "fr"
+      LANGUAGE_2: "fr",
     });
 
     expect(config.pages[1]).toMatchObject({
@@ -70,7 +70,7 @@ describe("configuration loading", () => {
       screenShotUrl: "/lovelace/second",
       accessToken: "second-token",
       language: "fr",
-      theme: { theme: "night" }
+      theme: { theme: "night" },
     });
   });
 
@@ -102,7 +102,7 @@ describe("configuration loading", () => {
       HA_ACCESS_TOKEN: "first-token",
       HA_BASE_URL_3: "https://third.example.test",
       HA_SCREENSHOT_URL_3: "/lovelace/third",
-      HA_ACCESS_TOKEN_3: "third-token"
+      HA_ACCESS_TOKEN_3: "third-token",
     });
 
     expect(config.pages).toHaveLength(1);
@@ -117,7 +117,7 @@ describe("configuration loading", () => {
       RENDERING_SCREEN_WIDTH: "1072",
       SCALING: "1.5",
       ROTATION: "90",
-      SATURATION: "0.75"
+      SATURATION: "0.75",
     });
 
     expect(config.pages[0]).toMatchObject({
@@ -125,7 +125,7 @@ describe("configuration loading", () => {
       renderingScreenSize: { width: 1072, height: 800 },
       scaling: 1.5,
       rotation: 90,
-      saturation: 0.75
+      saturation: 0.75,
     });
   });
 });

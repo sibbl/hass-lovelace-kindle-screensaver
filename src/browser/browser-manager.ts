@@ -1,17 +1,8 @@
-import puppeteer, {
-  type Browser,
-  type PuppeteerNodeLaunchOptions
-} from "puppeteer";
+import puppeteer, { type Browser, type PuppeteerNodeLaunchOptions } from "puppeteer";
 import { withTimeout } from "../shared/operation-timeout";
-import type {
-  AppConfig,
-  EnsureBrowserOptions,
-  Logger
-} from "../types";
+import type { AppConfig, EnsureBrowserOptions, Logger } from "../types";
 
-export type BrowserLauncher = (
-  options: PuppeteerNodeLaunchOptions
-) => Promise<Browser>;
+export type BrowserLauncher = (options: PuppeteerNodeLaunchOptions) => Promise<Browser>;
 
 export class BrowserManager {
   private readonly config: AppConfig;
@@ -24,7 +15,7 @@ export class BrowserManager {
   public constructor(
     config: AppConfig,
     logger: Logger = console,
-    launchBrowser: BrowserLauncher = (options) => puppeteer.launch(options)
+    launchBrowser: BrowserLauncher = (options) => puppeteer.launch(options),
   ) {
     this.config = config;
     this.logger = logger;
@@ -36,9 +27,7 @@ export class BrowserManager {
       return this.browser;
     }
     if (this.initInProgress) {
-      this.logger.log(
-        "Browser init already in progress, skipping init attempt"
-      );
+      this.logger.log("Browser init already in progress, skipping init attempt");
       return null;
     }
 
@@ -51,13 +40,11 @@ export class BrowserManager {
           "--disable-dev-shm-usage",
           "--no-sandbox",
           `--lang=${this.config.language}`,
-          ...(this.config.ignoreCertificateErrors
-            ? ["--ignore-certificate-errors"]
-            : [])
+          ...(this.config.ignoreCertificateErrors ? ["--ignore-certificate-errors"] : []),
         ],
         defaultViewport: null,
         timeout: this.config.browserLaunchTimeout,
-        headless: !this.config.debug
+        headless: !this.config.debug,
       });
 
       this.browser = nextBrowser;
@@ -70,16 +57,10 @@ export class BrowserManager {
       });
       return nextBrowser;
     } catch (error: unknown) {
-      this.logger.error(
-        "Browser startup failed, will retry on next render tick:",
-        error
-      );
+      this.logger.error("Browser startup failed, will retry on next render tick:", error);
       if (nextBrowser) {
         await nextBrowser.close().catch((closeError: unknown) => {
-          this.logger.error(
-            "Failed to close browser after init failure:",
-            closeError
-          );
+          this.logger.error("Failed to close browser after init failure:", closeError);
         });
       }
       return null;
@@ -88,9 +69,9 @@ export class BrowserManager {
     }
   }
 
-  public async ensureBrowser(
-    { resetBrowserCache = false }: EnsureBrowserOptions = {}
-  ): Promise<Browser> {
+  public async ensureBrowser({
+    resetBrowserCache = false,
+  }: EnsureBrowserOptions = {}): Promise<Browser> {
     if (resetBrowserCache) {
       await this.closeCurrentBrowser("browser cache reset request");
     } else if (this.isBrowserCacheExpired()) {
@@ -131,7 +112,7 @@ export class BrowserManager {
 export async function closeBrowser(
   browser: Browser,
   reason: string,
-  logger: Logger = console
+  logger: Logger = console,
 ): Promise<void> {
   try {
     await withTimeout(browser.close(), 5000, `close browser after ${reason}`);

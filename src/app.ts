@@ -7,10 +7,7 @@ import { HomeAssistantAuth } from "./browser/home-assistant-auth";
 import { validateConfig } from "./config/validate-config";
 import { Renderer } from "./rendering/renderer";
 import { RenderCoordinator } from "./scheduling/render-coordinator";
-import {
-  getHealthcheckMaxAge,
-  getRenderJobTimeout
-} from "./scheduling/timing";
+import { getHealthcheckMaxAge, getRenderJobTimeout } from "./scheduling/timing";
 import { ApplicationHttpServer } from "./server/http-server";
 import type { AppConfig, Logger, RenderResult } from "./types";
 
@@ -23,7 +20,7 @@ export interface RunningApplication {
 
 export function startApplication(
   config: AppConfig,
-  logger: Logger = console
+  logger: Logger = console,
 ): RunningApplication | null {
   const validationErrors = validateConfig(config);
   if (validationErrors.length > 0) {
@@ -38,22 +35,10 @@ export function startApplication(
   let cronJob: CronJob | null = null;
   const browserManager = new BrowserManager(config, logger);
   const homeAssistantAuth = new HomeAssistantAuth(logger);
-  const batteryManager = new BatteryManager(
-    config.ignoreCertificateErrors,
-    logger
-  );
-  const renderer = new Renderer(
-    config,
-    homeAssistantAuth,
-    batteryManager,
-    logger
-  );
+  const batteryManager = new BatteryManager(config.ignoreCertificateErrors, logger);
+  const renderer = new Renderer(config, homeAssistantAuth, batteryManager, logger);
   const renderJobTimeout = getRenderJobTimeout(config);
-  const healthcheckMaxAge = getHealthcheckMaxAge(
-    config,
-    renderJobTimeout,
-    logger
-  );
+  const healthcheckMaxAge = getHealthcheckMaxAge(config, renderJobTimeout, logger);
   const renderCoordinator = new RenderCoordinator<Browser>({
     renderJobTimeout,
     ensureBrowser: (options) => browserManager.ensureBrowser(options),
@@ -61,18 +46,16 @@ export function startApplication(
     onSuccess: () => {
       lastSuccessfulRenderAt = Date.now();
     },
-    logger
+    logger,
   });
 
   const safeRender = (): Promise<RenderResult> =>
-    renderCoordinator.run(
-      "scheduled render job",
-      (browser) => renderer.renderAll(browser),
-      { skipIfBusy: true }
-    );
+    renderCoordinator.run("scheduled render job", (browser) => renderer.renderAll(browser), {
+      skipIfBusy: true,
+    });
   const requestRender = (
     pageNumber: number | null,
-    { resetBrowserCache }: { resetBrowserCache: boolean }
+    { resetBrowserCache }: { resetBrowserCache: boolean },
   ): Promise<RenderResult> => {
     if (pageNumber !== null) {
       return renderCoordinator.run(
@@ -80,21 +63,21 @@ export function startApplication(
         (browser) => renderer.renderPage(browser, pageNumber - 1),
         {
           resetBrowserCache,
-          updateLastSuccessfulRender: false
-        }
+          updateLastSuccessfulRender: false,
+        },
       );
     }
 
     return renderCoordinator.run(
       "requested render for all images",
       (browser) => renderer.renderAll(browser),
-      { resetBrowserCache }
+      { resetBrowserCache },
     );
   };
   const clearBrowserCache = (): Promise<RenderResult> =>
     renderCoordinator.run("browser cache clear", async () => undefined, {
       resetBrowserCache: true,
-      updateLastSuccessfulRender: false
+      updateLastSuccessfulRender: false,
     });
 
   const httpServer = new ApplicationHttpServer({
@@ -106,7 +89,7 @@ export function startApplication(
     getRenderState: (now) => renderCoordinator.getState(now),
     requestRender,
     clearBrowserCache,
-    logger
+    logger,
   });
   const server = httpServer.start();
 
@@ -114,7 +97,7 @@ export function startApplication(
     await browserManager.initialize();
     if (config.debug) {
       logger.log(
-        "Debug mode active, will only render once in non-headless model and keep page open"
+        "Debug mode active, will only render once in non-headless model and keep page open",
       );
       await safeRender();
       return;
@@ -128,7 +111,7 @@ export function startApplication(
       onTick: () => {
         void safeRender();
       },
-      start: true
+      start: true,
     });
   };
 
@@ -140,6 +123,6 @@ export function startApplication(
     server,
     browserManager,
     renderCoordinator,
-    getCronJob: () => cronJob
+    getCronJob: () => cronJob,
   };
 }

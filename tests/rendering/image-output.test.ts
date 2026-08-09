@@ -4,34 +4,32 @@ import {
   normalizeImageFormat,
   resolveFinalTempPath,
   resolveOutputPath,
-  resolveScreenshotTempPath
+  resolveScreenshotTempPath,
 } from "../../src/rendering/image-output";
 
 describe("image output paths", () => {
   it("appends the configured image format", () => {
-    expect(
-      resolveOutputPath({ outputPath: "/output/cover", imageFormat: "jpeg" })
-    ).toBe("/output/cover.jpeg");
+    expect(resolveOutputPath({ outputPath: "/output/cover", imageFormat: "jpeg" })).toBe(
+      "/output/cover.jpeg",
+    );
   });
 
   it("does not duplicate an existing matching extension", () => {
-    expect(
-      resolveOutputPath({ outputPath: "/output/cover.bmp", imageFormat: "bmp" })
-    ).toBe("/output/cover.bmp");
+    expect(resolveOutputPath({ outputPath: "/output/cover.bmp", imageFormat: "bmp" })).toBe(
+      "/output/cover.bmp",
+    );
   });
 
   it("matches existing extensions case-insensitively", () => {
-    expect(
-      resolveOutputPath({ outputPath: "/output/cover.PNG", imageFormat: "png" })
-    ).toBe("/output/cover.png");
+    expect(resolveOutputPath({ outputPath: "/output/cover.PNG", imageFormat: "png" })).toBe(
+      "/output/cover.png",
+    );
   });
 
   it("uses explicit formats for temporary files", () => {
-    expect(resolveScreenshotTempPath("/output/cover.jpeg")).toBe(
-      "/output/cover.jpeg.render.png"
-    );
+    expect(resolveScreenshotTempPath("/output/cover.jpeg")).toBe("/output/cover.jpeg.render.png");
     expect(resolveFinalTempPath("/output/cover.jpeg", "jpeg")).toBe(
-      "/output/cover.jpeg.final.jpeg"
+      "/output/cover.jpeg.final.jpeg",
     );
   });
 

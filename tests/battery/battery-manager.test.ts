@@ -16,7 +16,7 @@ describe("battery manager", () => {
   it("ignores battery values outside the accepted range", () => {
     const manager = new BatteryManager(false, {
       log: vi.fn(),
-      error: vi.fn()
+      error: vi.fn(),
     });
 
     manager.update(0, 1, 101, "Yes");
@@ -26,7 +26,7 @@ describe("battery manager", () => {
   it("tracks charging transitions without replacing the battery level", () => {
     const manager = new BatteryManager(false, {
       log: vi.fn(),
-      error: vi.fn()
+      error: vi.fn(),
     });
 
     manager.update(0, 1, 50, "Yes");

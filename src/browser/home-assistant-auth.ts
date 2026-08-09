@@ -6,15 +6,12 @@ function getInstanceKey(pageConfig: PageConfig): string {
     pageConfig.baseUrl,
     pageConfig.accessToken,
     pageConfig.language,
-    pageConfig.theme
+    pageConfig.theme,
   ]);
 }
 
 export class HomeAssistantAuth {
-  private readonly contextsByBrowser = new WeakMap<
-    Browser,
-    Map<string, Promise<BrowserContext>>
-  >();
+  private readonly contextsByBrowser = new WeakMap<Browser, Map<string, Promise<BrowserContext>>>();
   private readonly logger: Logger;
 
   public constructor(logger: Logger = console) {
@@ -24,7 +21,7 @@ export class HomeAssistantAuth {
   public async getAuthenticatedContext(
     browser: Browser,
     pageConfig: PageConfig,
-    renderingTimeout: number
+    renderingTimeout: number,
   ): Promise<BrowserContext> {
     let browserContexts = this.contextsByBrowser.get(browser);
     if (!browserContexts) {
@@ -36,11 +33,7 @@ export class HomeAssistantAuth {
     let contextPromise = browserContexts.get(instanceKey);
 
     if (!contextPromise) {
-      contextPromise = this.createAuthenticatedContext(
-        browser,
-        pageConfig,
-        renderingTimeout
-      );
+      contextPromise = this.createAuthenticatedContext(browser, pageConfig, renderingTimeout);
       browserContexts.set(instanceKey, contextPromise);
     }
 
@@ -57,7 +50,7 @@ export class HomeAssistantAuth {
   private async createAuthenticatedContext(
     browser: Browser,
     pageConfig: PageConfig,
-    renderingTimeout: number
+    renderingTimeout: number,
   ): Promise<BrowserContext> {
     const browserContext = await browser.createIncognitoBrowserContext();
     let page = null;
@@ -67,18 +60,16 @@ export class HomeAssistantAuth {
       this.logger.log(`Visiting '${pageConfig.baseUrl}' to login...`);
       page = await browserContext.newPage();
       await page.goto(pageConfig.baseUrl, {
-        timeout: renderingTimeout
+        timeout: renderingTimeout,
       });
 
       const hassTokens = {
         hassUrl: pageConfig.baseUrl,
         access_token: pageConfig.accessToken,
-        token_type: "Bearer"
+        token_type: "Bearer",
       };
 
-      this.logger.log(
-        "Adding authentication entry to browser's local storage..."
-      );
+      this.logger.log("Adding authentication entry to browser's local storage...");
       await page.evaluate(
         (tokens, selectedLanguage, selectedTheme) => {
           localStorage.setItem("hassTokens", tokens);
@@ -89,7 +80,7 @@ export class HomeAssistantAuth {
         },
         JSON.stringify(hassTokens),
         JSON.stringify(pageConfig.language),
-        pageConfig.theme ? JSON.stringify(pageConfig.theme) : null
+        pageConfig.theme ? JSON.stringify(pageConfig.theme) : null,
       );
 
       return browserContext;
@@ -101,7 +92,7 @@ export class HomeAssistantAuth {
         await page.close().catch((error: unknown) => {
           this.logger.error(
             "Failed to close login page after Home Assistant authentication:",
-            error
+            error,
           );
         });
       }

@@ -1,7 +1,7 @@
 import type { IncomingHttpHeaders } from "node:http";
 
 function getHeaderValue(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? value.join(",") : value ?? "";
+  return Array.isArray(value) ? value.join(",") : (value ?? "");
 }
 
 function parseHttpDate(value: string | string[] | undefined): number | null {
@@ -18,10 +18,7 @@ function normalizeEtag(etag: string | undefined): string {
   return String(etag || "").trim();
 }
 
-function etagMatches(
-  ifNoneMatch: string | string[] | undefined,
-  etag: string
-): boolean {
+function etagMatches(ifNoneMatch: string | string[] | undefined, etag: string): boolean {
   const normalizedHeader = getHeaderValue(ifNoneMatch);
   if (!normalizedHeader) {
     return false;
@@ -31,16 +28,13 @@ function etagMatches(
     return true;
   }
 
-  return normalizedHeader
-    .split(",")
-    .map(normalizeEtag)
-    .includes(normalizeEtag(etag));
+  return normalizedHeader.split(",").map(normalizeEtag).includes(normalizeEtag(etag));
 }
 
 export function shouldReturnNotModified(
   headers: IncomingHttpHeaders,
   etag: string,
-  modifiedTimeMs: number
+  modifiedTimeMs: number,
 ): boolean {
   if (etagMatches(headers["if-none-match"], etag)) {
     return true;

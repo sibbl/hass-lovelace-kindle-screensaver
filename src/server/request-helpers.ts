@@ -5,10 +5,7 @@ export interface RenderTarget {
   pageNumber: number | null;
 }
 
-export function hasTruthyFlag(
-  searchParams: URLSearchParams,
-  name: string
-): boolean {
+export function hasTruthyFlag(searchParams: URLSearchParams, name: string): boolean {
   if (!searchParams.has(name)) {
     return false;
   }
@@ -38,7 +35,7 @@ export function parseRenderTarget(pathname: string): RenderTarget | null {
 
 export function getOperationHeaders(
   renderResult: RenderResult | null,
-  cacheClearResult: RenderResult | null
+  cacheClearResult: RenderResult | null,
 ): OutgoingHttpHeaders {
   const headers: OutgoingHttpHeaders = {};
 
@@ -52,9 +49,7 @@ export function getOperationHeaders(
   if (cacheClearResult) {
     headers["X-Cache-Clear-Status"] = cacheClearResult.status;
     if (cacheClearResult.status === "failed") {
-      headers["X-Cache-Clear-Error"] = sanitizeHeaderValue(
-        cacheClearResult.error
-      );
+      headers["X-Cache-Clear-Error"] = sanitizeHeaderValue(cacheClearResult.error);
     }
   }
 
@@ -62,19 +57,21 @@ export function getOperationHeaders(
 }
 
 export function sanitizeHeaderValue(value: unknown): string {
-  return String(value).replace(/[\r\n]/g, " ").slice(0, 256);
+  return String(value)
+    .replace(/[\r\n]/g, " ")
+    .slice(0, 256);
 }
 
 export function writeJsonResponse(
   response: ServerResponse,
   statusCode: number,
-  payload: unknown
+  payload: unknown,
 ): void {
   const body = JSON.stringify(payload);
   response.writeHead(statusCode, {
     "Content-Type": "application/json",
     "Content-Length": Buffer.byteLength(body),
-    "Cache-Control": "no-cache"
+    "Cache-Control": "no-cache",
   });
   response.end(body);
 }

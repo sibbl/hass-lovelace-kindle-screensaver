@@ -1,8 +1,6 @@
 import type { AppConfig, PageConfig } from "../src/types";
 
-export function createPageConfig(
-  overrides: Partial<PageConfig> = {}
-): PageConfig {
+export function createPageConfig(overrides: Partial<PageConfig> = {}): PageConfig {
   return {
     baseUrl: "https://home.example.test",
     accessToken: "token",
@@ -27,13 +25,11 @@ export function createPageConfig(
     contrast: 1,
     httpAuthUser: null,
     httpAuthPassword: null,
-    ...overrides
+    ...overrides,
   };
 }
 
-export function createAppConfig(
-  overrides: Partial<AppConfig> = {}
-): AppConfig {
+export function createAppConfig(overrides: Partial<AppConfig> = {}): AppConfig {
   return {
     baseUrl: "https://home.example.test",
     accessToken: "token",
@@ -51,6 +47,6 @@ export function createAppConfig(
     ignoreCertificateErrors: false,
     httpAuthUser: null,
     httpAuthPassword: null,
-    ...overrides
+    ...overrides,
   };
 }

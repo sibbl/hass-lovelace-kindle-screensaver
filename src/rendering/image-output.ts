@@ -5,7 +5,7 @@ export function normalizeImageFormat(imageFormat: string | undefined): string {
 }
 
 export function resolveOutputPath(
-  pageConfig: Pick<PageConfig, "imageFormat" | "outputPath">
+  pageConfig: Pick<PageConfig, "imageFormat" | "outputPath">,
 ): string {
   const imageFormat = normalizeImageFormat(pageConfig.imageFormat);
   const extension = `.${imageFormat}`;
@@ -22,10 +22,7 @@ export function resolveScreenshotTempPath(outputPath: string): string {
   return `${outputPath}.render.png`;
 }
 
-export function resolveFinalTempPath(
-  outputPath: string,
-  imageFormat: string
-): string {
+export function resolveFinalTempPath(outputPath: string, imageFormat: string): string {
   return `${outputPath}.final.${normalizeImageFormat(imageFormat)}`;
 }
 

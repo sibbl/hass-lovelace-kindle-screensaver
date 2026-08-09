@@ -3,7 +3,7 @@ import {
   getOperationHeaders,
   hasTruthyFlag,
   parseRenderTarget,
-  sanitizeHeaderValue
+  sanitizeHeaderValue,
 } from "../../src/server/request-helpers";
 
 describe("request helpers", () => {
@@ -16,26 +16,19 @@ describe("request helpers", () => {
 
   it("recognizes truthy query flags while honoring common false values", () => {
     expect(hasTruthyFlag(new URLSearchParams("refresh"), "refresh")).toBe(true);
-    expect(hasTruthyFlag(new URLSearchParams("refresh=yes"), "refresh")).toBe(
-      true
-    );
+    expect(hasTruthyFlag(new URLSearchParams("refresh=yes"), "refresh")).toBe(true);
     for (const value of ["0", "false", "no", "off"]) {
-      expect(
-        hasTruthyFlag(new URLSearchParams(`refresh=${value}`), "refresh")
-      ).toBe(false);
+      expect(hasTruthyFlag(new URLSearchParams(`refresh=${value}`), "refresh")).toBe(false);
     }
   });
 
   it("adds render and cache-clear status headers", () => {
     expect(
-      getOperationHeaders(
-        { status: "failed", error: "render failed" },
-        { status: "ok" }
-      )
+      getOperationHeaders({ status: "failed", error: "render failed" }, { status: "ok" }),
     ).toEqual({
       "X-Render-Status": "failed",
       "X-Render-Error": "render failed",
-      "X-Cache-Clear-Status": "ok"
+      "X-Cache-Clear-Status": "ok",
     });
   });
 

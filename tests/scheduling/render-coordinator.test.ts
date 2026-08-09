@@ -9,7 +9,7 @@ function createDeferred(): { promise: Promise<void>; resolve(): void } {
 
   return {
     promise,
-    resolve: () => resolvePromise?.()
+    resolve: () => resolvePromise?.(),
   };
 }
 
@@ -19,14 +19,14 @@ function createCoordinator(
     ensureBrowser(options: { resetBrowserCache?: boolean }): Promise<string>;
     closeBrowser(reason: string): Promise<void>;
     onSuccess(): void;
-  }> = {}
+  }> = {},
 ): RenderCoordinator<string> {
   return new RenderCoordinator<string>({
     renderJobTimeout: 1000,
     ensureBrowser: async () => "browser",
     closeBrowser: async () => undefined,
     logger: { log: vi.fn(), error: vi.fn() },
-    ...overrides
+    ...overrides,
   });
 }
 
@@ -41,11 +41,11 @@ describe("render coordinator", () => {
 
     await expect(
       coordinator.run("scheduled render", async () => undefined, {
-        skipIfBusy: true
-      })
+        skipIfBusy: true,
+      }),
     ).resolves.toEqual({
       status: "skipped",
-      reason: "render_in_progress"
+      reason: "render_in_progress",
     });
 
     deferred.resolve();
@@ -78,7 +78,7 @@ describe("render coordinator", () => {
     const coordinator = createCoordinator({ ensureBrowser });
 
     await coordinator.run("cache clear", async () => undefined, {
-      resetBrowserCache: true
+      resetBrowserCache: true,
     });
 
     expect(ensureBrowser).toHaveBeenCalledWith({ resetBrowserCache: true });
@@ -89,7 +89,7 @@ describe("render coordinator", () => {
     const coordinator = createCoordinator({ onSuccess });
 
     await coordinator.run("single page", async () => undefined, {
-      updateLastSuccessfulRender: false
+      updateLastSuccessfulRender: false,
     });
 
     expect(onSuccess).not.toHaveBeenCalled();
@@ -99,18 +99,15 @@ describe("render coordinator", () => {
     const closeBrowser = vi.fn(async () => undefined);
     const coordinator = createCoordinator({
       renderJobTimeout: 5,
-      closeBrowser
+      closeBrowser,
     });
 
-    const result = await coordinator.run(
-      "stuck render",
-      () => new Promise<void>(() => undefined)
-    );
+    const result = await coordinator.run("stuck render", () => new Promise<void>(() => undefined));
 
-    expect(result.status).toBe("failed");
-    if (result.status === "failed") {
-      expect(result.error).toContain("stuck render timed out");
-    }
+    expect(result).toEqual({
+      status: "failed",
+      error: expect.stringContaining("stuck render timed out"),
+    });
     expect(closeBrowser).toHaveBeenCalledWith("stuck render timeout");
   });
 
@@ -127,7 +124,7 @@ describe("render coordinator", () => {
 
     await expect(failed).resolves.toEqual({
       status: "failed",
-      error: "dashboard unavailable"
+      error: "dashboard unavailable",
     });
     await expect(successful).resolves.toEqual({ status: "ok" });
     expect(calls).toEqual(["failed", "successful"]);
@@ -139,15 +136,13 @@ describe("render coordinator", () => {
     const coordinator = createCoordinator();
     const render = coordinator.run("stateful", () => deferred.promise);
 
-    await vi.waitFor(() =>
-      expect(coordinator.getState().renderInProgress).toBe(true)
-    );
+    await vi.waitFor(() => expect(coordinator.getState().renderInProgress).toBe(true));
     expect(coordinator.getState().renderInProgressFor).toBeGreaterThanOrEqual(0);
     deferred.resolve();
     await render;
     expect(coordinator.getState()).toEqual({
       renderInProgress: false,
-      renderInProgressFor: null
+      renderInProgressFor: null,
     });
   });
 });

@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  getHealthcheckMaxAge,
-  getRenderJobTimeout
-} from "../../src/scheduling/timing";
+import { getHealthcheckMaxAge, getRenderJobTimeout } from "../../src/scheduling/timing";
 import { createAppConfig, createPageConfig } from "../fixtures";
 
 describe("render timing", () => {
@@ -11,8 +8,8 @@ describe("render timing", () => {
       renderingTimeout: 10000,
       pages: [
         createPageConfig({ renderingDelay: 1000 }),
-        createPageConfig({ renderingDelay: 2000 })
-      ]
+        createPageConfig({ renderingDelay: 2000 }),
+      ],
     });
 
     expect(getRenderJobTimeout(config)).toBe(83000);

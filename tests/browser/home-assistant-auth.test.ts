@@ -21,16 +21,16 @@ function createBrowserMocks(): BrowserMocks {
   const page = {
     goto,
     evaluate,
-    close: closePage
+    close: closePage,
   } as unknown as Page;
   const closeContext = vi.fn(async () => undefined);
   const browserContext = {
     newPage: vi.fn(async () => page),
-    close: closeContext
+    close: closeContext,
   } as unknown as BrowserContext;
   const createContext = vi.fn(async () => browserContext);
   const browser = {
-    createIncognitoBrowserContext: createContext
+    createIncognitoBrowserContext: createContext,
   } as unknown as Browser;
 
   return {
@@ -41,7 +41,7 @@ function createBrowserMocks(): BrowserMocks {
     goto,
     evaluate,
     closePage,
-    closeContext
+    closeContext,
   };
 }
 
@@ -52,23 +52,23 @@ describe("Home Assistant browser authentication", () => {
     const pageConfig = createPageConfig({
       accessToken: "secret-token",
       language: "de",
-      theme: { theme: "eink" }
+      theme: { theme: "eink" },
     });
 
-    await expect(
-      auth.getAuthenticatedContext(mocks.browser, pageConfig, 1234)
-    ).resolves.toBe(mocks.browserContext);
+    await expect(auth.getAuthenticatedContext(mocks.browser, pageConfig, 1234)).resolves.toBe(
+      mocks.browserContext,
+    );
     expect(mocks.goto).toHaveBeenCalledWith("https://home.example.test", {
-      timeout: 1234
+      timeout: 1234,
     });
     expect(mocks.evaluate.mock.calls[0]?.slice(1)).toEqual([
       JSON.stringify({
         hassUrl: "https://home.example.test",
         access_token: "secret-token",
-        token_type: "Bearer"
+        token_type: "Bearer",
       }),
       JSON.stringify("de"),
-      JSON.stringify({ theme: "eink" })
+      JSON.stringify({ theme: "eink" }),
     ]);
     expect(mocks.closePage).toHaveBeenCalledOnce();
   });
@@ -77,16 +77,8 @@ describe("Home Assistant browser authentication", () => {
     const mocks = createBrowserMocks();
     const auth = new HomeAssistantAuth({ log: vi.fn(), error: vi.fn() });
 
-    const first = await auth.getAuthenticatedContext(
-      mocks.browser,
-      createPageConfig(),
-      1000
-    );
-    const second = await auth.getAuthenticatedContext(
-      mocks.browser,
-      createPageConfig(),
-      1000
-    );
+    const first = await auth.getAuthenticatedContext(mocks.browser, createPageConfig(), 1000);
+    const second = await auth.getAuthenticatedContext(mocks.browser, createPageConfig(), 1000);
 
     expect(first).toBe(second);
     expect(mocks.createContext).toHaveBeenCalledOnce();
@@ -101,22 +93,14 @@ describe("Home Assistant browser authentication", () => {
     mocks.goto.mockReturnValueOnce(navigation);
     const auth = new HomeAssistantAuth({ log: vi.fn(), error: vi.fn() });
 
-    const first = auth.getAuthenticatedContext(
-      mocks.browser,
-      createPageConfig(),
-      1000
-    );
-    const second = auth.getAuthenticatedContext(
-      mocks.browser,
-      createPageConfig(),
-      1000
-    );
+    const first = auth.getAuthenticatedContext(mocks.browser, createPageConfig(), 1000);
+    const second = auth.getAuthenticatedContext(mocks.browser, createPageConfig(), 1000);
     await vi.waitFor(() => expect(mocks.goto).toHaveBeenCalledOnce());
 
     finishNavigation?.();
     await expect(Promise.all([first, second])).resolves.toEqual([
       mocks.browserContext,
-      mocks.browserContext
+      mocks.browserContext,
     ]);
     expect(mocks.createContext).toHaveBeenCalledOnce();
     expect(mocks.evaluate).toHaveBeenCalledOnce();
@@ -130,19 +114,19 @@ describe("Home Assistant browser authentication", () => {
       .mockResolvedValueOnce(first.browserContext)
       .mockResolvedValueOnce(second.browserContext);
     const browser = {
-      createIncognitoBrowserContext: createContext
+      createIncognitoBrowserContext: createContext,
     } as unknown as Browser;
     const auth = new HomeAssistantAuth({ log: vi.fn(), error: vi.fn() });
 
     const firstContext = await auth.getAuthenticatedContext(
       browser,
       createPageConfig({ accessToken: "first" }),
-      1000
+      1000,
     );
     const secondContext = await auth.getAuthenticatedContext(
       browser,
       createPageConfig({ accessToken: "second" }),
-      1000
+      1000,
     );
 
     expect(firstContext).toBe(first.browserContext);
@@ -159,17 +143,17 @@ describe("Home Assistant browser authentication", () => {
       .mockResolvedValueOnce(failed.browserContext)
       .mockResolvedValueOnce(recovered.browserContext);
     const browser = {
-      createIncognitoBrowserContext: createContext
+      createIncognitoBrowserContext: createContext,
     } as unknown as Browser;
     const auth = new HomeAssistantAuth({ log: vi.fn(), error: vi.fn() });
     const config = createPageConfig();
 
-    await expect(
-      auth.getAuthenticatedContext(browser, config, 1000)
-    ).rejects.toThrow("instance unavailable");
-    await expect(
-      auth.getAuthenticatedContext(browser, config, 1000)
-    ).resolves.toBe(recovered.browserContext);
+    await expect(auth.getAuthenticatedContext(browser, config, 1000)).rejects.toThrow(
+      "instance unavailable",
+    );
+    await expect(auth.getAuthenticatedContext(browser, config, 1000)).resolves.toBe(
+      recovered.browserContext,
+    );
     expect(failed.closePage).toHaveBeenCalledOnce();
     expect(failed.closeContext).toHaveBeenCalledOnce();
   });

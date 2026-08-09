@@ -6,10 +6,7 @@ describe("application startup", () => {
   it("stops before starting services when configuration is invalid", () => {
     const logger = { log: vi.fn(), error: vi.fn() };
 
-    const application = startApplication(
-      createAppConfig({ pages: [] }),
-      logger
-    );
+    const application = startApplication(createAppConfig({ pages: [] }), logger);
 
     expect(application).toBeNull();
     expect(logger.error).toHaveBeenCalledWith("Please check your configuration");
