@@ -15,6 +15,9 @@ services:
       # Uncomment both HTTP_AUTH_* variables to require basic auth for the image endpoint.
       # - HTTP_AUTH_USER=admin
       # - HTTP_AUTH_PASSWORD=secret
+      # Add matching numbered variables for page-specific credentials, for example:
+      # - HTTP_AUTH_USER_2=second-admin
+      # - HTTP_AUTH_PASSWORD_2=second-secret
       - CRON_JOB=* * * * *
       - RENDERING_TIMEOUT=30000
       - RENDERING_DELAY=0

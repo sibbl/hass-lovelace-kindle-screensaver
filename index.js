@@ -11,6 +11,11 @@ const gm = require("gm");
 const crypto = require("crypto");
 const { shouldReturnNotModified } = require("./http-cache");
 const {
+  getHttpAuthForRequest,
+  isHttpRequestAuthorized,
+  writeUnauthorizedResponse
+} = require("./http-auth");
+const {
   getGraphicsMagickFormat,
   resolveFinalTempPath,
   resolveOutputPath,
@@ -195,8 +200,10 @@ async function getFileHash(filePath) {
     );
   };
 
-  const requireAuth = config.httpAuthUser && config.httpAuthPassword;
-  if (requireAuth) {
+  const hasProtectedPage = config.pages.some(
+    (pageConfig) => pageConfig.httpAuthUser && pageConfig.httpAuthPassword
+  );
+  if (hasProtectedPage) {
     console.log("Basic auth enabled for HTTP server");
   }
 
@@ -234,22 +241,12 @@ async function getFileHash(filePath) {
       return;
     }
 
-    // Check basic auth if configured
-    if (requireAuth) {
-      const authHeader = request.headers.authorization;
-      if (!authHeader || !authHeader.startsWith("Basic ")) {
-        response.writeHead(401, { "WWW-Authenticate": 'Basic realm="hass-lovelace-kindle-screensaver"' });
-        response.end("Unauthorized");
-        return;
-      }
-      const credentials = Buffer.from(authHeader.slice(6), "base64").toString();
-      const [user, ...passwordParts] = credentials.split(":");
-      const password = passwordParts.join(":");
-      if (user !== config.httpAuthUser || password !== config.httpAuthPassword) {
-        response.writeHead(401, { "WWW-Authenticate": 'Basic realm="hass-lovelace-kindle-screensaver"' });
-        response.end("Unauthorized");
-        return;
-      }
+    // Check the credentials configured for the requested page. Global operations
+    // such as /render and /cache/clear use the first page's credentials.
+    const requestAuth = getHttpAuthForRequest(url.pathname, config.pages);
+    if (!isHttpRequestAuthorized(request.headers.authorization, requestAuth)) {
+      writeUnauthorizedResponse(response);
+      return;
     }
 
     if (url.pathname === "/render" || url.pathname.startsWith("/render/")) {

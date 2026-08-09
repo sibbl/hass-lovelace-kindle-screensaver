@@ -59,6 +59,9 @@ function getPagesConfig() {
       batteryWebHook: getEnvironmentVariable("HA_BATTERY_WEBHOOK", suffix) || null,
       saturation: getEnvironmentVariable("SATURATION", suffix) || 1,
       contrast: getEnvironmentVariable("CONTRAST", suffix) || 1,
+      httpAuthUser: getEnvironmentVariable("HTTP_AUTH_USER", suffix) || null,
+      httpAuthPassword:
+        getEnvironmentVariable("HTTP_AUTH_PASSWORD", suffix) || null,
     });
   }
   return pages;
