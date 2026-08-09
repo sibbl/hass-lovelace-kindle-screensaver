@@ -1,11 +1,16 @@
 # Changelog
 
-## Unreleased
+## 1.1.0
 
 ### Added
 
 * Support rendering pages from multiple Home Assistant instances with numbered `HA_BASE_URL_n`, `HA_ACCESS_TOKEN_n`, `HA_THEME_n`, and `LANGUAGE_n` variables
 * Isolate Home Assistant sessions in browser contexts while sharing one Chromium process
+
+### Fixed
+
+* Send battery webhook updates to the Home Assistant instance configured for each page
+* Avoid exposing additional environment variable values such as access tokens in Home Assistant Add-On logs
 
 ## 1.0.19
 
