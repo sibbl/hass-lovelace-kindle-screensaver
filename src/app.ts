@@ -106,7 +106,7 @@ export function startApplication(
     logger.log("Starting first render...");
     await safeRender();
     logger.log("Starting rendering cronjob...");
-    cronJob = new CronJob({
+    cronJob = CronJob.from({
       cronTime: config.cronJob,
       onTick: () => {
         void safeRender();
