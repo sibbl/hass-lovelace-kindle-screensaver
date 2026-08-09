@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0
+
+### Added
+
+* Support page-specific HTTP Basic Auth credentials with numbered `HTTP_AUTH_USER_n` and `HTTP_AUTH_PASSWORD_n` variables
+
+### Fixed
+
+* Pass configured HTTP Basic Auth credentials into the Home Assistant Add-On runtime
+
 ## 1.1.0
 
 ### Added

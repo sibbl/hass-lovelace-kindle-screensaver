@@ -64,8 +64,8 @@ Home Assistant related stuff:
 | `HA_ACCESS_TOKEN`         | `eyJ0...`                             | yes      | yes      | Long-lived access token from Home Assistant, see [official docs](https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token)                                                        |
 | `HA_BATTERY_WEBHOOK`      | `set_kindle_battery_level`            | no       | yes      | Webhook definied in HA which receives `batteryLevel` (number between 0-100) and `isCharging` (boolean) as JSON                                                                                       |
 | `HA_THEME`                | `eink`                                | no       | yes      | Name of the HA theme to use for rendering. Must be installed in your HA instance. When not set, HA's default theme is used.                                                                           |
-| `HTTP_AUTH_USER`          | `admin`                               | no       | no       | Username for optional HTTP basic authentication on the image server. Requires `HTTP_AUTH_PASSWORD` to enable authentication.                                                                          |
-| `HTTP_AUTH_PASSWORD`      | `secret`                              | no       | no       | Password for optional HTTP basic authentication on the image server. Requires `HTTP_AUTH_USER` to enable authentication.                                                                              |
+| `HTTP_AUTH_USER`          | `admin`                               | no       | yes      | Username for optional HTTP basic authentication on the image server. Requires `HTTP_AUTH_PASSWORD` to enable authentication.                                                                          |
+| `HTTP_AUTH_PASSWORD`      | `secret`                              | no       | yes      | Password for optional HTTP basic authentication on the image server. Requires `HTTP_AUTH_USER` to enable authentication.                                                                              |
 | `LANGUAGE`                | `en`                                  | no       | yes      | Language to set in browser and home assistant                                                                                                                                                        |
 | `PREFERS_COLOR_SCHEME`    | `light`                               | no       | yes      | Enable browser dark mode, use `light` or `dark`.                                                                                                                                                     |
 | `CRON_JOB`                | `* * * * *`                           | no       | no       | How often to take screenshot                                                                                                                                                                         |
@@ -89,6 +89,8 @@ Home Assistant related stuff:
 
 **\* Array** means that you can append `_2`, `_3`, ... `_n` for a numbered output page. Numbered variables fall back to the unnumbered value when omitted. For example, `ROTATION_2=180` only changes the second image; without it, the second image uses `ROTATION`.
 You can access these additional images by making GET Requests `http://localhost:5000/2`, `http://localhost:5000/3` etc.
+
+Numbered HTTP Basic Auth credentials protect the corresponding image and render endpoint. For example, `HTTP_AUTH_USER_3` and `HTTP_AUTH_PASSWORD_3` apply to `/3` and `/render/3`. When omitted, that page inherits `HTTP_AUTH_USER` and `HTTP_AUTH_PASSWORD`; global operations such as `/render` and `/cache/clear` use the unnumbered credentials. The `/health` endpoint remains unauthenticated for container health checks.
 
 ### Multiple Home Assistant instances
 

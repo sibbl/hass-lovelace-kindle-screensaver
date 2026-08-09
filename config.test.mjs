@@ -8,12 +8,19 @@ const managedEnvironmentVariables = [
   "HA_BASE_URL_2",
   "HA_SCREENSHOT_URL",
   "HA_SCREENSHOT_URL_2",
+  "HA_SCREENSHOT_URL_3",
   "HA_ACCESS_TOKEN",
   "HA_ACCESS_TOKEN_2",
   "HA_THEME",
   "HA_THEME_2",
   "LANGUAGE",
-  "LANGUAGE_2"
+  "LANGUAGE_2",
+  "HTTP_AUTH_USER",
+  "HTTP_AUTH_USER_2",
+  "HTTP_AUTH_USER_3",
+  "HTTP_AUTH_PASSWORD",
+  "HTTP_AUTH_PASSWORD_2",
+  "HTTP_AUTH_PASSWORD_3"
 ];
 const originalEnvironment = Object.fromEntries(
   managedEnvironmentVariables.map((key) => [key, process.env[key]])
@@ -116,6 +123,27 @@ describe("config", () => {
       accessToken: "second-token",
       language: "fr",
       theme: { theme: "night" }
+    });
+  });
+
+  it("allows numbered pages to override inherited HTTP auth credentials", () => {
+    process.env.HA_SCREENSHOT_URL = "/lovelace/first";
+    process.env.HA_SCREENSHOT_URL_2 = "/lovelace/second";
+    process.env.HA_SCREENSHOT_URL_3 = "/lovelace/third";
+    process.env.HTTP_AUTH_USER = "shared-user";
+    process.env.HTTP_AUTH_PASSWORD = "shared-password";
+    process.env.HTTP_AUTH_USER_3 = "third-user";
+    process.env.HTTP_AUTH_PASSWORD_3 = "third-password";
+
+    const config = loadConfig();
+
+    expect(config.pages[1]).toMatchObject({
+      httpAuthUser: "shared-user",
+      httpAuthPassword: "shared-password"
+    });
+    expect(config.pages[2]).toMatchObject({
+      httpAuthUser: "third-user",
+      httpAuthPassword: "third-password"
     });
   });
 });
