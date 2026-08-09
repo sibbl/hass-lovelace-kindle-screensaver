@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.3.0
+
+### Added
+
+- Add oxfmt and oxlint formatting, linting, and CI validation
+- Add reusable Docker end-to-end coverage against a pinned real Home Assistant instance for standalone and add-on images, authenticated multi-page rendering, HTTP caching, and runtime fonts
+
+### Changed
+
+- Migrate the application and regression suite to strict TypeScript with focused configuration, browser, rendering, scheduling, battery, and HTTP modules
+- Replace Puppeteer with Playwright Core and the architecture-native system Chromium package, avoiding unavailable bundled browser binaries on supported ARM platforms
+- Modernize container builds to Node.js 22, Alpine 3.22, pinned Home Assistant base images, multi-stage production builds, current GitHub Actions, and preserved CJK and emoji font support
+- Update application and test dependencies, including cron 4 and Vitest 4
+
+### Fixed
+
+- Seed Home Assistant authentication storage before the first navigation to avoid an initial unauthenticated request
+
 ## 1.2.0
 
 ### Added
