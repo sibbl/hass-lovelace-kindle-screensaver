@@ -39,4 +39,24 @@ describe("HTTP cache validators", () => {
       )
     ).toBe(false);
   });
+
+  it("matches the If-None-Match wildcard", () => {
+    expect(
+      shouldReturnNotModified(
+        { "if-none-match": "*" },
+        '"current"',
+        Date.now()
+      )
+    ).toBe(true);
+  });
+
+  it("ignores invalid If-Modified-Since values", () => {
+    expect(
+      shouldReturnNotModified(
+        { "if-modified-since": "not a date" },
+        '"current"',
+        Date.now()
+      )
+    ).toBe(false);
+  });
 });

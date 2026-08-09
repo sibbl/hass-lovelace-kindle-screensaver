@@ -6,11 +6,13 @@ const managedEnvironmentVariables = [
   "BROWSER_CACHE_TTL_SECONDS",
   "HA_BASE_URL",
   "HA_BASE_URL_2",
+  "HA_BASE_URL_3",
   "HA_SCREENSHOT_URL",
   "HA_SCREENSHOT_URL_2",
   "HA_SCREENSHOT_URL_3",
   "HA_ACCESS_TOKEN",
   "HA_ACCESS_TOKEN_2",
+  "HA_ACCESS_TOKEN_3",
   "HA_THEME",
   "HA_THEME_2",
   "LANGUAGE",
@@ -145,5 +147,19 @@ describe("config", () => {
       httpAuthUser: "third-user",
       httpAuthPassword: "third-password"
     });
+  });
+
+  it("stops numbered page discovery at the first missing screenshot URL", () => {
+    process.env.HA_BASE_URL = "https://first.example.test";
+    process.env.HA_SCREENSHOT_URL = "/lovelace/first";
+    process.env.HA_ACCESS_TOKEN = "first-token";
+    process.env.HA_BASE_URL_3 = "https://third.example.test";
+    process.env.HA_SCREENSHOT_URL_3 = "/lovelace/third";
+    process.env.HA_ACCESS_TOKEN_3 = "third-token";
+
+    const config = loadConfig();
+
+    expect(config.pages).toHaveLength(1);
+    expect(config.pages[0].screenShotUrl).toBe("/lovelace/first");
   });
 });

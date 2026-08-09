@@ -122,4 +122,53 @@ describe("render coordinator", () => {
     expect(result.error).toContain("stuck render timed out");
     expect(closeBrowser).toHaveBeenCalledWith("stuck render timeout");
   });
+
+  it("continues queued work after an ordinary render failure", async () => {
+    const calls = [];
+    const coordinator = new RenderCoordinator({
+      renderJobTimeout: 1000,
+      ensureBrowser: vi.fn(async () => "browser"),
+      closeBrowser: vi.fn(),
+      logger: { log: vi.fn(), error: vi.fn() }
+    });
+
+    const failedRender = coordinator.run("failed render", async () => {
+      calls.push("failed");
+      throw new Error("dashboard unavailable");
+    });
+    const successfulRender = coordinator.run("successful render", async () => {
+      calls.push("successful");
+    });
+
+    await expect(failedRender).resolves.toEqual({
+      status: "failed",
+      error: "dashboard unavailable"
+    });
+    await expect(successfulRender).resolves.toEqual({ status: "ok" });
+    expect(calls).toEqual(["failed", "successful"]);
+    expect(coordinator.hasWork()).toBe(false);
+  });
+
+  it("reports render state only while work is executing", async () => {
+    const deferred = createDeferred();
+    const coordinator = new RenderCoordinator({
+      renderJobTimeout: 1000,
+      ensureBrowser: vi.fn(async () => "browser"),
+      closeBrowser: vi.fn(),
+      logger: { log: vi.fn(), error: vi.fn() }
+    });
+
+    const render = coordinator.run("stateful render", () => deferred.promise);
+    await vi.waitFor(() => {
+      expect(coordinator.getState().renderInProgress).toBe(true);
+    });
+    expect(coordinator.getState().renderInProgressFor).toBeGreaterThanOrEqual(0);
+
+    deferred.resolve();
+    await render;
+    expect(coordinator.getState()).toEqual({
+      renderInProgress: false,
+      renderInProgressFor: null
+    });
+  });
 });

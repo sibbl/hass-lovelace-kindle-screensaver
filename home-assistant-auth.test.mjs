@@ -87,6 +87,41 @@ describe("Home Assistant browser authentication", () => {
     expect(browser.createIncognitoBrowserContext).toHaveBeenCalledOnce();
   });
 
+  it("shares an in-flight authentication attempt for matching pages", async () => {
+    let finishNavigation;
+    const navigation = new Promise((resolve) => {
+      finishNavigation = resolve;
+    });
+    const { browserContext, page } = createBrowserContext();
+    page.goto.mockReturnValueOnce(navigation);
+    const browser = {
+      createIncognitoBrowserContext: vi.fn(async () => browserContext)
+    };
+    const logger = createLogger();
+
+    const firstContext = getAuthenticatedContext(
+      browser,
+      createPageConfig(),
+      1000,
+      logger
+    );
+    const secondContext = getAuthenticatedContext(
+      browser,
+      createPageConfig(),
+      1000,
+      logger
+    );
+    await vi.waitFor(() => expect(page.goto).toHaveBeenCalledOnce());
+
+    finishNavigation();
+    await expect(Promise.all([firstContext, secondContext])).resolves.toEqual([
+      browserContext,
+      browserContext
+    ]);
+    expect(browser.createIncognitoBrowserContext).toHaveBeenCalledOnce();
+    expect(page.evaluate).toHaveBeenCalledOnce();
+  });
+
   it("isolates distinct credentials even when the base URL is the same", async () => {
     const first = createBrowserContext();
     const second = createBrowserContext();
