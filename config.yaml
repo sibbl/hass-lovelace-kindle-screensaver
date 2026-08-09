@@ -74,4 +74,4 @@ schema:
     - name: match(^[A-Z0-9_]+$)
       value: str
 environment:
-  output_path: "/output/cover"
+  OUTPUT_PATH: "/output/cover"

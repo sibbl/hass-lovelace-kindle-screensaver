@@ -22,6 +22,7 @@ Install required system dependencies before starting:
 - Format: `npm run format` writes oxfmt changes; `npm run format:check` only checks them.
 - Lint: `npm run lint` runs oxlint with warnings denied; `npm run lint:fix` applies safe fixes.
 - Complete validation: `npm run validate` checks formatting, lints, type-checks source and tests, runs Vitest, and builds the production output.
+- Docker e2e: `npm run test:e2e` renders the committed dashboard fixture against a pinned real Home Assistant container and validates the resulting image and HTTP behavior.
 
 ### Running the Application
 
@@ -83,6 +84,7 @@ After making code changes, test these scenarios:
 /
 ├── src/                  # Typed application modules and entry point
 ├── tests/                # Typed regression test suite
+├── tests/e2e/            # Real Home Assistant Docker e2e fixture
 ├── .oxfmtrc.json         # oxfmt configuration
 ├── .oxlintrc.json        # oxlint configuration
 ├── tsconfig.json         # Strict type-checking configuration

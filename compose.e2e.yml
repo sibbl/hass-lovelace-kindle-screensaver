@@ -1,0 +1,82 @@
+services:
+  home-assistant:
+    image: ghcr.io/home-assistant/home-assistant:2026.7.3
+    volumes:
+      - home-assistant-config:/config
+      - ./tests/e2e/home-assistant/configuration.yaml:/config/configuration.yaml:ro
+      - ./tests/e2e/home-assistant/ui-lovelace.yaml:/config/ui-lovelace.yaml:ro
+    ports:
+      - "127.0.0.1::8123"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8123/api/onboarding"]
+      interval: 2s
+      timeout: 5s
+      retries: 90
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      home-assistant:
+        condition: service_healthy
+    environment:
+      HA_BASE_URL: http://home-assistant:8123
+      HA_SCREENSHOT_URL: /lovelace/0
+      HA_ACCESS_TOKEN: ${HA_E2E_ACCESS_TOKEN:-not-initialized}
+      CRON_JOB: "0 0 1 1 *"
+      RENDERING_TIMEOUT: "60000"
+      BROWSER_LAUNCH_TIMEOUT: "60000"
+      RENDERING_DELAY: "1000"
+      RENDERING_SCREEN_HEIGHT: "800"
+      RENDERING_SCREEN_WIDTH: "600"
+      OUTPUT_PATH: /output/cover
+      USE_IMAGE_MAGICK: "true"
+      LANGUAGE: en
+    ports:
+      - "127.0.0.1::5000"
+    volumes:
+      - output:/output
+
+  app-addon:
+    build:
+      context: .
+      dockerfile: Dockerfile.HA_ADDON
+      args:
+        BUILD_FROM: ${HA_E2E_ADDON_BASE:-ghcr.io/home-assistant/amd64-base:3.22-2025.11.1}
+    depends_on:
+      home-assistant:
+        condition: service_healthy
+      supervisor:
+        condition: service_healthy
+    environment:
+      OUTPUT_PATH: /output/cover
+    ports:
+      - "127.0.0.1::5000"
+    volumes:
+      - ${HA_E2E_ADDON_DATA:?Set HA_E2E_ADDON_DATA to an isolated data directory}:/data:ro
+      - addon-output:/output
+
+  supervisor:
+    image: node:22-alpine3.22
+    command: ["node", "/test/supervisor.mjs"]
+    volumes:
+      - ${HA_E2E_ADDON_DATA:?Set HA_E2E_ADDON_DATA to an isolated data directory}:/data:ro
+      - ./tests/e2e/supervisor.mjs:/test/supervisor.mjs:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://127.0.0.1/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  home-assistant-config:
+  output:
+  addon-output:

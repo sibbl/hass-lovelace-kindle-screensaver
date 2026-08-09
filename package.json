@@ -13,6 +13,7 @@
     "lint:fix": "oxlint --fix",
     "start": "node dist/index.js",
     "test": "vitest run",
+    "test:e2e": "bash tests/e2e/run.sh",
     "typecheck": "tsc --project tsconfig.json",
     "validate": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build"
   },

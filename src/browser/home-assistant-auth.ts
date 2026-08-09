@@ -57,12 +57,7 @@ export class HomeAssistantAuth {
     let authenticationFailed = false;
 
     try {
-      this.logger.log(`Visiting '${pageConfig.baseUrl}' to login...`);
       page = await browserContext.newPage();
-      await page.goto(pageConfig.baseUrl, {
-        timeout: renderingTimeout,
-      });
-
       const hassTokens = {
         hassUrl: pageConfig.baseUrl,
         access_token: pageConfig.accessToken,
@@ -70,8 +65,8 @@ export class HomeAssistantAuth {
       };
 
       this.logger.log("Adding authentication entry to browser's local storage...");
-      await page.evaluate(
-        (tokens, selectedLanguage, selectedTheme) => {
+      await page.evaluateOnNewDocument(
+        (tokens: string, selectedLanguage: string, selectedTheme: string | null) => {
           localStorage.setItem("hassTokens", tokens);
           localStorage.setItem("selectedLanguage", selectedLanguage);
           if (selectedTheme) {
@@ -82,6 +77,10 @@ export class HomeAssistantAuth {
         JSON.stringify(pageConfig.language),
         pageConfig.theme ? JSON.stringify(pageConfig.theme) : null,
       );
+      this.logger.log(`Visiting '${pageConfig.baseUrl}' to login...`);
+      await page.goto(pageConfig.baseUrl, {
+        timeout: renderingTimeout,
+      });
 
       return browserContext;
     } catch (error: unknown) {

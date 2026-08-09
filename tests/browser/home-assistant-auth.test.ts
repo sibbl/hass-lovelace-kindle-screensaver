@@ -9,18 +9,18 @@ interface BrowserMocks {
   page: Page;
   createContext: ReturnType<typeof vi.fn>;
   goto: ReturnType<typeof vi.fn>;
-  evaluate: ReturnType<typeof vi.fn>;
+  evaluateOnNewDocument: ReturnType<typeof vi.fn>;
   closePage: ReturnType<typeof vi.fn>;
   closeContext: ReturnType<typeof vi.fn>;
 }
 
 function createBrowserMocks(): BrowserMocks {
   const goto = vi.fn(async () => null);
-  const evaluate = vi.fn(async () => undefined);
+  const evaluateOnNewDocument = vi.fn(async () => undefined);
   const closePage = vi.fn(async () => undefined);
   const page = {
     goto,
-    evaluate,
+    evaluateOnNewDocument,
     close: closePage,
   } as unknown as Page;
   const closeContext = vi.fn(async () => undefined);
@@ -39,7 +39,7 @@ function createBrowserMocks(): BrowserMocks {
     page,
     createContext,
     goto,
-    evaluate,
+    evaluateOnNewDocument,
     closePage,
     closeContext,
   };
@@ -61,7 +61,7 @@ describe("Home Assistant browser authentication", () => {
     expect(mocks.goto).toHaveBeenCalledWith("https://home.example.test", {
       timeout: 1234,
     });
-    expect(mocks.evaluate.mock.calls[0]?.slice(1)).toEqual([
+    expect(mocks.evaluateOnNewDocument.mock.calls[0]?.slice(1)).toEqual([
       JSON.stringify({
         hassUrl: "https://home.example.test",
         access_token: "secret-token",
@@ -103,7 +103,7 @@ describe("Home Assistant browser authentication", () => {
       mocks.browserContext,
     ]);
     expect(mocks.createContext).toHaveBeenCalledOnce();
-    expect(mocks.evaluate).toHaveBeenCalledOnce();
+    expect(mocks.evaluateOnNewDocument).toHaveBeenCalledOnce();
   });
 
   it("isolates distinct credentials on the same URL", async () => {

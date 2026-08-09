@@ -177,7 +177,10 @@ The application and tests are written in strict TypeScript. Install dependencies
 ```bash
 npm ci
 npm run validate
+npm run test:e2e
 npm start
 ```
 
 `npm run validate` type-checks the application and tests, runs the Vitest regression suite, and compiles the production files into `dist/`. Docker and Home Assistant Add-On builds perform the production compilation automatically.
+
+`npm run test:e2e` starts an isolated, pinned Home Assistant container, creates a temporary owner and access token through Home Assistant's onboarding API, and verifies real Lovelace renders from both the standalone and Home Assistant Add-On images. It also checks the output dimensions, grayscale conversion, CJK and emoji fonts, health and render endpoints, and HTTP caching. Docker Compose v2 is required; the test removes its temporary containers, data, and named volumes when it exits.
