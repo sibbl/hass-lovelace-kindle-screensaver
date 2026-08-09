@@ -28,8 +28,13 @@ function getPagesConfig() {
     const suffix = i === 1 ? "" : `_${i}`;
     const screenShotUrl = process.env[`HA_SCREENSHOT_URL${suffix}`];
     if (!screenShotUrl) return pages;
+    const theme = getEnvironmentVariable("HA_THEME", suffix);
     pages.push({
+      baseUrl: getEnvironmentVariable("HA_BASE_URL", suffix),
+      accessToken: getEnvironmentVariable("HA_ACCESS_TOKEN", suffix),
       screenShotUrl,
+      language: getEnvironmentVariable("LANGUAGE", suffix) || "en",
+      theme: theme ? { theme } : null,
       imageFormat: getEnvironmentVariable("IMAGE_FORMAT", suffix) || "png",
       outputPath: getEnvironmentVariable(
         "OUTPUT_PATH",
@@ -60,6 +65,8 @@ function getPagesConfig() {
 }
 
 module.exports = {
+  // Keep these top-level values for backwards compatibility. Rendering uses the
+  // resolved values on each page, which may override them with a numbered env var.
   baseUrl: process.env.HA_BASE_URL,
   accessToken: process.env.HA_ACCESS_TOKEN,
   cronJob: process.env.CRON_JOB || "* * * * *",

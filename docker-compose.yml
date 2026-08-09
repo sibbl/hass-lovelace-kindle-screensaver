@@ -7,6 +7,11 @@ services:
       - HA_BASE_URL=https://your-path-to-home-assistant:8123
       - HA_SCREENSHOT_URL=/lovelace?kiosk
       - HA_ACCESS_TOKEN=eyJ0...
+      # To render another Home Assistant instance in the same Chromium process,
+      # uncomment and configure the three numbered variables below. Its image is at /2.
+      # - HA_BASE_URL_2=https://your-second-home-assistant:8123
+      # - HA_SCREENSHOT_URL_2=/lovelace?kiosk
+      # - HA_ACCESS_TOKEN_2=eyJ0...
       # Uncomment both HTTP_AUTH_* variables to require basic auth for the image endpoint.
       # - HTTP_AUTH_USER=admin
       # - HTTP_AUTH_PASSWORD=secret

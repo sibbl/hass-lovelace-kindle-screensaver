@@ -27,7 +27,7 @@ bashio::log.info "Loading additional environment variables..."
 for var in $(bashio::config 'ADDITIONAL_ENV_VARS|keys'); do
     name=$(bashio::config "ADDITIONAL_ENV_VARS[${var}].name")
     value=$(bashio::config "ADDITIONAL_ENV_VARS[${var}].value")
-    bashio::log.info "Setting ${name} to ${value}"
+    bashio::log.info "Setting additional environment variable ${name}"
     export "${name}=${value}"
 done
 
