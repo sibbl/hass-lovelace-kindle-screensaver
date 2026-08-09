@@ -93,8 +93,7 @@ function getPagesConfig(environment: NodeJS.ProcessEnv): PageConfig[] {
       saturation: parseNumber(getEnvironmentVariable(environment, "SATURATION", suffix), 1),
       contrast: parseNumber(getEnvironmentVariable(environment, "CONTRAST", suffix), 1),
       httpAuthUser: getEnvironmentVariable(environment, "HTTP_AUTH_USER", suffix) || null,
-      httpAuthPassword:
-        getEnvironmentVariable(environment, "HTTP_AUTH_PASSWORD", suffix) || null,
+      httpAuthPassword: getEnvironmentVariable(environment, "HTTP_AUTH_PASSWORD", suffix) || null,
     });
   }
 }

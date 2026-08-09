@@ -24,7 +24,12 @@ services:
     environment:
       HA_BASE_URL: http://home-assistant:8123
       HA_SCREENSHOT_URL: /lovelace/0
+      HA_SCREENSHOT_URL_2: /lovelace/0
       HA_ACCESS_TOKEN: ${HA_E2E_ACCESS_TOKEN:-not-initialized}
+      HTTP_AUTH_USER: e2e-user
+      HTTP_AUTH_PASSWORD: e2e-password
+      HTTP_AUTH_USER_2: e2e-user-2
+      HTTP_AUTH_PASSWORD_2: e2e-password-2
       CRON_JOB: "0 0 1 1 *"
       RENDERING_TIMEOUT: "60000"
       BROWSER_LAUNCH_TIMEOUT: "60000"
@@ -32,6 +37,7 @@ services:
       RENDERING_SCREEN_HEIGHT: "800"
       RENDERING_SCREEN_WIDTH: "600"
       OUTPUT_PATH: /output/cover
+      OUTPUT_PATH_2: /output/cover_2
       USE_IMAGE_MAGICK: "true"
       LANGUAGE: en
     ports:

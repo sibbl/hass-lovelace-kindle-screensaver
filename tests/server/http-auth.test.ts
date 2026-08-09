@@ -1,23 +1,20 @@
 import { describe, expect, it } from "vitest";
-import {
-  getHttpAuthForRequest,
-  isHttpRequestAuthorized
-} from "../../src/server/http-auth";
+import { getHttpAuthForRequest, isHttpRequestAuthorized } from "../../src/server/http-auth";
 import { createPageConfig } from "../fixtures";
 
 const pages = [
   createPageConfig({
     httpAuthUser: "first-user",
-    httpAuthPassword: "first-password"
+    httpAuthPassword: "first-password",
   }),
   createPageConfig({
     httpAuthUser: "second-user",
-    httpAuthPassword: "second-password"
+    httpAuthPassword: "second-password",
   }),
   createPageConfig({
     httpAuthUser: "third-user",
-    httpAuthPassword: "third:password"
-  })
+    httpAuthPassword: "third:password",
+  }),
 ];
 
 function basicAuth(user: string, password: string): string {
@@ -35,18 +32,12 @@ describe("HTTP auth", () => {
   it("authorizes a numbered page with its own username and password", () => {
     const authConfig = getHttpAuthForRequest("/3", pages);
 
-    expect(
-      isHttpRequestAuthorized(
-        basicAuth("third-user", "third:password"),
-        authConfig
-      )
-    ).toBe(true);
-    expect(
-      isHttpRequestAuthorized(
-        basicAuth("first-user", "first-password"),
-        authConfig
-      )
-    ).toBe(false);
+    expect(isHttpRequestAuthorized(basicAuth("third-user", "third:password"), authConfig)).toBe(
+      true,
+    );
+    expect(isHttpRequestAuthorized(basicAuth("first-user", "first-password"), authConfig)).toBe(
+      false,
+    );
   });
 
   it("leaves pages without a complete credential pair public", () => {

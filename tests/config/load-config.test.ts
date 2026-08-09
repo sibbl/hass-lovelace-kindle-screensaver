@@ -82,16 +82,16 @@ describe("configuration loading", () => {
       HTTP_AUTH_USER: "shared-user",
       HTTP_AUTH_PASSWORD: "shared-password",
       HTTP_AUTH_USER_3: "third-user",
-      HTTP_AUTH_PASSWORD_3: "third-password"
+      HTTP_AUTH_PASSWORD_3: "third-password",
     });
 
     expect(config.pages[1]).toMatchObject({
       httpAuthUser: "shared-user",
-      httpAuthPassword: "shared-password"
+      httpAuthPassword: "shared-password",
     });
     expect(config.pages[2]).toMatchObject({
       httpAuthUser: "third-user",
-      httpAuthPassword: "third-password"
+      httpAuthPassword: "third-password",
     });
   });
 

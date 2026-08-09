@@ -15,6 +15,10 @@ interface HttpResponse {
   body: Buffer;
 }
 
+function basicAuth(user: string, password: string): string {
+  return `Basic ${Buffer.from(`${user}:${password}`).toString("base64")}`;
+}
+
 function request(
   server: Server,
   requestPath: string,
@@ -126,6 +130,43 @@ describe("application HTTP server", () => {
     expect(JSON.parse(health.body.toString())).toMatchObject({ status: "ok" });
     expect(image.statusCode).toBe(401);
     expect(image.headers["www-authenticate"]).toContain("Basic");
+  });
+
+  it("applies numbered credentials to matching image and render endpoints", async () => {
+    await fs.writeFile(path.join(tempDirectory, "cover.png"), "first-image");
+    await fs.writeFile(path.join(tempDirectory, "cover_2.png"), "second-image");
+    const authenticatedConfig = {
+      ...config,
+      pages: [
+        createPageConfig({
+          outputPath: path.join(tempDirectory, "cover"),
+          httpAuthUser: "first-user",
+          httpAuthPassword: "first-password",
+        }),
+        createPageConfig({
+          outputPath: path.join(tempDirectory, "cover_2"),
+          httpAuthUser: "second-user",
+          httpAuthPassword: "second-password",
+        }),
+      ],
+    };
+    const runningServer = await startServer(authenticatedConfig);
+    const firstAuth = { Authorization: basicAuth("first-user", "first-password") };
+    const secondAuth = { Authorization: basicAuth("second-user", "second-password") };
+
+    expect((await request(runningServer, "/", { headers: firstAuth })).statusCode).toBe(200);
+    expect((await request(runningServer, "/", { headers: secondAuth })).statusCode).toBe(401);
+    expect((await request(runningServer, "/2", { headers: firstAuth })).statusCode).toBe(401);
+    expect((await request(runningServer, "/2", { headers: secondAuth })).statusCode).toBe(200);
+    expect(
+      (await request(runningServer, "/render/2", { method: "POST", headers: firstAuth }))
+        .statusCode,
+    ).toBe(401);
+    expect(
+      (await request(runningServer, "/render/2", { method: "POST", headers: secondAuth }))
+        .statusCode,
+    ).toBe(200);
+    expect(requestRender).toHaveBeenCalledWith(2, { resetBrowserCache: false });
   });
 
   it("serves images with validators and supports conditional requests", async () => {
