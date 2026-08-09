@@ -4,6 +4,8 @@
 
 This tool can be used to display a Lovelace view of your Home Assistant instance on a [jailbroken](https://www.mobileread.com/forums/showthread.php?t=320564) Kindle device. It regularly takes a screenshot which can be polled and used as a screensaver image of the [online screensaver plugin](https://www.mobileread.com/forums/showthread.php?t=236104).
 
+Browser automation uses Playwright Core with the Chromium package supplied by each Docker architecture, avoiding bundled browser downloads that are unavailable for some supported ARM platforms.
+
 If you're looking for a way to render your own HTML, see my other project [hass-kindle-screensaver](https://github.com/sibbl/hass-kindle-screensaver) which renders a React page and can be adapted to your specific needs.
 
 ## Sample image

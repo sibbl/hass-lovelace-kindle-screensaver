@@ -1,4 +1,4 @@
-import type { Browser } from "puppeteer";
+import type { Browser } from "playwright-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BrowserManager } from "../../src/browser/browser-manager";
 import { createAppConfig } from "../fixtures";
@@ -20,7 +20,6 @@ function createMockBrowser(): MockBrowser {
       }
       return browser;
     }),
-    process: vi.fn(() => null),
   } as unknown as Browser;
 
   return {
@@ -53,7 +52,6 @@ describe("browser manager", () => {
     expect(launch).toHaveBeenCalledWith(
       expect.objectContaining({
         args: expect.arrayContaining(["--no-sandbox", "--lang=de", "--ignore-certificate-errors"]),
-        defaultViewport: null,
         timeout: 1234,
         headless: false,
       }),

@@ -1,8 +1,8 @@
-import puppeteer, { type Browser, type PuppeteerNodeLaunchOptions } from "puppeteer";
+import { chromium, type Browser, type LaunchOptions } from "playwright-core";
 import { withTimeout } from "../shared/operation-timeout";
 import type { AppConfig, EnsureBrowserOptions, Logger } from "../types";
 
-export type BrowserLauncher = (options: PuppeteerNodeLaunchOptions) => Promise<Browser>;
+export type BrowserLauncher = (options: LaunchOptions) => Promise<Browser>;
 
 export class BrowserManager {
   private readonly config: AppConfig;
@@ -15,7 +15,7 @@ export class BrowserManager {
   public constructor(
     config: AppConfig,
     logger: Logger = console,
-    launchBrowser: BrowserLauncher = (options) => puppeteer.launch(options),
+    launchBrowser: BrowserLauncher = (options) => chromium.launch(options),
   ) {
     this.config = config;
     this.logger = logger;
@@ -35,6 +35,8 @@ export class BrowserManager {
     let nextBrowser: Browser | null = null;
     try {
       this.logger.log("Starting browser...");
+      const executablePath =
+        process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ?? process.env.PUPPETEER_EXECUTABLE_PATH;
       nextBrowser = await this.launchBrowser({
         args: [
           "--disable-dev-shm-usage",
@@ -42,7 +44,7 @@ export class BrowserManager {
           `--lang=${this.config.language}`,
           ...(this.config.ignoreCertificateErrors ? ["--ignore-certificate-errors"] : []),
         ],
-        defaultViewport: null,
+        ...(executablePath ? { executablePath } : {}),
         timeout: this.config.browserLaunchTimeout,
         headless: !this.config.debug,
       });
@@ -115,9 +117,8 @@ export async function closeBrowser(
   logger: Logger = console,
 ): Promise<void> {
   try {
-    await withTimeout(browser.close(), 5000, `close browser after ${reason}`);
+    await withTimeout(browser.close({ reason }), 5000, `close browser after ${reason}`);
   } catch (error: unknown) {
     logger.error(`Failed to close browser after ${reason}:`, error);
-    browser.process()?.kill("SIGKILL");
   }
 }

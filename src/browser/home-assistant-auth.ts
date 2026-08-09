@@ -1,4 +1,4 @@
-import type { Browser, BrowserContext } from "puppeteer";
+import type { Browser, BrowserContext } from "playwright-core";
 import type { Logger, PageConfig } from "../types";
 
 function getInstanceKey(pageConfig: PageConfig): string {
@@ -21,7 +21,6 @@ export class HomeAssistantAuth {
   public async getAuthenticatedContext(
     browser: Browser,
     pageConfig: PageConfig,
-    renderingTimeout: number,
   ): Promise<BrowserContext> {
     let browserContexts = this.contextsByBrowser.get(browser);
     if (!browserContexts) {
@@ -33,7 +32,7 @@ export class HomeAssistantAuth {
     let contextPromise = browserContexts.get(instanceKey);
 
     if (!contextPromise) {
-      contextPromise = this.createAuthenticatedContext(browser, pageConfig, renderingTimeout);
+      contextPromise = this.createAuthenticatedContext(browser, pageConfig);
       browserContexts.set(instanceKey, contextPromise);
     }
 
@@ -50,14 +49,13 @@ export class HomeAssistantAuth {
   private async createAuthenticatedContext(
     browser: Browser,
     pageConfig: PageConfig,
-    renderingTimeout: number,
   ): Promise<BrowserContext> {
-    const browserContext = await browser.createIncognitoBrowserContext();
-    let page = null;
-    let authenticationFailed = false;
+    const browserContext = await browser.newContext({
+      locale: pageConfig.language,
+      viewport: null,
+    });
 
     try {
-      page = await browserContext.newPage();
       const hassTokens = {
         hassUrl: pageConfig.baseUrl,
         access_token: pageConfig.accessToken,
@@ -65,39 +63,25 @@ export class HomeAssistantAuth {
       };
 
       this.logger.log("Adding authentication entry to browser's local storage...");
-      await page.evaluateOnNewDocument(
-        (tokens: string, selectedLanguage: string, selectedTheme: string | null) => {
+      await browserContext.addInitScript(
+        ({ tokens, selectedLanguage, selectedTheme }) => {
           localStorage.setItem("hassTokens", tokens);
           localStorage.setItem("selectedLanguage", selectedLanguage);
           if (selectedTheme) {
             localStorage.setItem("selectedTheme", selectedTheme);
           }
         },
-        JSON.stringify(hassTokens),
-        JSON.stringify(pageConfig.language),
-        pageConfig.theme ? JSON.stringify(pageConfig.theme) : null,
+        {
+          tokens: JSON.stringify(hassTokens),
+          selectedLanguage: JSON.stringify(pageConfig.language),
+          selectedTheme: pageConfig.theme ? JSON.stringify(pageConfig.theme) : null,
+        },
       );
-      this.logger.log(`Visiting '${pageConfig.baseUrl}' to login...`);
-      await page.goto(pageConfig.baseUrl, {
-        timeout: renderingTimeout,
-      });
 
       return browserContext;
     } catch (error: unknown) {
-      authenticationFailed = true;
+      await browserContext.close().catch(() => undefined);
       throw error;
-    } finally {
-      if (page) {
-        await page.close().catch((error: unknown) => {
-          this.logger.error(
-            "Failed to close login page after Home Assistant authentication:",
-            error,
-          );
-        });
-      }
-      if (authenticationFailed) {
-        await browserContext.close().catch(() => undefined);
-      }
     }
   }
 }

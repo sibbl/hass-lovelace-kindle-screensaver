@@ -1,4 +1,4 @@
-import type { Browser } from "puppeteer";
+import type { Browser } from "playwright-core";
 import { describe, expect, it, vi } from "vitest";
 import { BatteryManager } from "../../src/battery/battery-manager";
 import { HomeAssistantAuth } from "../../src/browser/home-assistant-auth";

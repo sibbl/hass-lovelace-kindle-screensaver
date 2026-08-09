@@ -1,4 +1,4 @@
-import type { Browser } from "puppeteer";
+import type { Browser } from "playwright-core";
 
 export interface Logger {
   log(...values: unknown[]): void;

@@ -1,6 +1,6 @@
 # Home Assistant Lovelace Kindle Screensaver
 
-This is a strict TypeScript application that generates Kindle-compatible screensaver images from Home Assistant Lovelace dashboards using Puppeteer (headless Chrome) and image processing tools.
+This is a strict TypeScript application that generates Kindle-compatible screensaver images from Home Assistant Lovelace dashboards using Playwright Core with system Chromium and image processing tools.
 
 Use these repository instructions as the primary guide, and verify anything that no longer matches the worktree.
 
@@ -12,12 +12,12 @@ Install required system dependencies before starting:
 
 - `sudo apt-get update` -- takes 30-60 seconds
 - `sudo apt-get install -y imagemagick graphicsmagick` -- takes 60-120 seconds
-- Browser: The application requires Chrome/Chromium but cannot download it in restricted environments. Use Docker instead for full functionality.
+- Browser: The application requires Chrome/Chromium. Playwright Core intentionally does not download a browser; use Docker for the fully supported runtime.
 
 ### Bootstrap and Dependencies
 
 - Local quality tooling requires Node.js 20.19+ (or 22.12+).
-- `PUPPETEER_SKIP_DOWNLOAD=true npm ci` -- ALWAYS set `PUPPETEER_SKIP_DOWNLOAD=true` to avoid downloading Chromium during dependency installation.
+- `npm ci` -- installs the Node.js dependencies without downloading Chromium.
 - Build: `npm run build` compiles `src/` into `dist/`.
 - Format: `npm run format` writes oxfmt changes; `npm run format:check` only checks them.
 - Lint: `npm run lint` runs oxlint with warnings denied; `npm run lint:fix` applies safe fixes.
@@ -42,7 +42,7 @@ export HA_ACCESS_TOKEN="your-long-lived-access-token"
 
 - `npm run validate` -- checks formatting and lint, type-checks, tests, and builds the application
 - `npm start` -- runs the compiled application from `dist/`
-- The application will fail with "Could not find expected browser" without Chrome/Chromium installed
+- The application will fail during browser launch without Chrome/Chromium installed
 - For testing without a browser: Set `DEBUG=true` to see how far initialization gets
 
 #### Docker Development (Recommended)
@@ -121,7 +121,7 @@ After making code changes, test these scenarios:
 In restricted environments:
 
 - Docker builds will fail due to Alpine package downloads
-- Puppeteer cannot download Chromium (solved by PUPPETEER_SKIP_DOWNLOAD=true)
+- Playwright Core does not bundle Chromium; the Docker images install Alpine's architecture-specific Chromium package
 - External package repositories may be inaccessible
 - Always document actual failure points rather than assuming they work
 
@@ -149,8 +149,8 @@ In restricted environments:
 ## Debugging Common Issues
 
 - **"Please check your configuration"**: Missing required environment variables
-- **"Could not find expected browser"**: Missing Chrome/Chromium, use Docker instead
-- **"Network error"**: Use `PUPPETEER_SKIP_DOWNLOAD=true` for `npm ci`
+- **Browser executable errors**: Missing Chrome/Chromium, use Docker instead
+- **Package network errors**: Verify npm and Alpine repository access
 - **Docker build failures**: Network restrictions prevent Alpine package downloads
 - **Connection timeouts**: Home Assistant instance not accessible from current network
 

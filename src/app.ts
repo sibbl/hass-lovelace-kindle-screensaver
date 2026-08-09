@@ -1,6 +1,6 @@
 import type { Server } from "node:http";
 import { CronJob } from "cron";
-import type { Browser } from "puppeteer";
+import type { Browser } from "playwright-core";
 import { BatteryManager } from "./battery/battery-manager";
 import { BrowserManager } from "./browser/browser-manager";
 import { HomeAssistantAuth } from "./browser/home-assistant-auth";

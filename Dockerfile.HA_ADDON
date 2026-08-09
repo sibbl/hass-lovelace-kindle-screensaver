@@ -4,9 +4,6 @@ FROM node:22-alpine3.22 AS build
 
 WORKDIR /app
 
-ENV PUPPETEER_SKIP_DOWNLOAD=true \
-    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-
 COPY package*.json ./
 COPY tsconfig*.json ./
 
@@ -33,7 +30,7 @@ RUN apk add --no-cache \
     nss \
     ttf-freefont
 
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
     USE_IMAGE_MAGICK=true
 
 COPY local.conf /etc/fonts/local.conf

@@ -3,7 +3,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import fsExtra from "fs-extra";
 import gm from "gm";
-import type { Browser, Page } from "puppeteer";
+import type { Browser, Page } from "playwright-core";
 import { BatteryManager } from "../battery/battery-manager";
 import { HomeAssistantAuth } from "../browser/home-assistant-auth";
 import { withTimeout } from "../shared/operation-timeout";
@@ -109,7 +109,6 @@ export class Renderer {
       const browserContext = await this.homeAssistantAuth.getAuthenticatedContext(
         browser,
         pageConfig,
-        this.config.renderingTimeout,
       );
       page = await withTimeout(
         browserContext.newPage(),
@@ -117,12 +116,9 @@ export class Renderer {
         `open browser page for ${url}`,
       );
       await withTimeout(
-        page.emulateMediaFeatures([
-          {
-            name: "prefers-color-scheme",
-            value: pageConfig.prefersColorScheme,
-          },
-        ]),
+        page.emulateMedia({
+          colorScheme: pageConfig.prefersColorScheme === "dark" ? "dark" : "light",
+        }),
         this.config.renderingTimeout,
         `emulate media for ${url}`,
       );
@@ -136,14 +132,14 @@ export class Renderer {
       }
 
       await withTimeout(
-        page.setViewport(size),
+        page.setViewportSize(size),
         this.config.renderingTimeout,
         `set viewport for ${url}`,
       );
       const navigationStartedAt = Date.now();
       this.logger.log(`Navigating to ${url}...`);
       await page.goto(url, {
-        waitUntil: ["domcontentloaded", "load", "networkidle0"],
+        waitUntil: "networkidle",
         timeout: this.config.renderingTimeout,
       });
 
@@ -173,7 +169,6 @@ export class Renderer {
         page.screenshot({
           path: screenshotPath,
           type: "png",
-          captureBeyondViewport: false,
           clip: {
             x: 0,
             y: 0,
