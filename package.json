@@ -19,5 +19,8 @@
   "devDependencies": {
     "vite": "^4.5.14",
     "vitest": "^0.34.6"
+  },
+  "overrides": {
+    "tar-fs": "2.1.4"
   }
 }
