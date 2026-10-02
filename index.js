@@ -699,6 +699,36 @@ async function renderUrlToImageAsync(browser, pageConfig, url, path) {
       config.renderingTimeout,
       `open browser page for ${url}`
     );
+    const timezoneId = process.env.TZ;
+    if (timezoneId) {
+      await page.evaluateOnNewDocument((tz) => {
+        const NativeDTF = Intl.DateTimeFormat;
+
+        function PatchedDateTimeFormat(locales, options) {
+          if (!(this instanceof PatchedDateTimeFormat) && !new.target) {
+            return new PatchedDateTimeFormat(locales, options);
+          }
+          const opts = Object.assign({}, options);
+          if (!opts.timeZone) {
+            opts.timeZone = tz;
+          }
+          return new NativeDTF(locales, opts);
+          }
+
+          PatchedDateTimeFormat.prototype = NativeDTF.prototype;
+          PatchedDateTimeFormat.supportedLocalesOf =
+          NativeDTF.supportedLocalesOf.bind(NativeDTF);
+
+          // Lock it down so the frontend cannot replace it
+          Object.defineProperty(Intl, "DateTimeFormat", {
+          value: PatchedDateTimeFormat,
+          writable: false,
+          configurable: false
+        });
+      }, timezoneId);
+
+      console.log(`Timezone override injected: ${timezoneId}`);
+      }
     await withTimeout(
       page.emulateMediaFeatures([
         {
