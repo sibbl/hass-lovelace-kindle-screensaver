@@ -43,3 +43,10 @@ describe("HTTP auth", () => {
     ).toBe(true);
   });
 });
+
+it.each(["/02", "/2anything", "/2/extra", "/2%00", "/+2", "/render/02", "/render/2extra", "/9007199254740992"])(
+  "rejects ambiguous path %s even when page one is public", (pathname) => {
+    const auth = getHttpAuthForRequest(pathname, [{}, pages[1]]);
+    expect(isHttpRequestAuthorized(undefined, auth)).toBe(false);
+  }
+);
