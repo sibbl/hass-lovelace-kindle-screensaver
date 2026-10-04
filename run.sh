@@ -3,25 +3,28 @@
 bashio::log.info "Loading config..."
 
 export HA_BASE_URL="$(bashio::config 'HA_BASE_URL')"
-export HA_SCREENSHOT_URL=$(bashio::config 'HA_SCREENSHOT_URL')
+export HA_SCREENSHOT_URL="$(bashio::config 'HA_SCREENSHOT_URL')"
 export HA_ACCESS_TOKEN="$(bashio::config 'HA_ACCESS_TOKEN')"
 export HTTP_AUTH_USER="$(bashio::config 'HTTP_AUTH_USER')"
 export HTTP_AUTH_PASSWORD="$(bashio::config 'HTTP_AUTH_PASSWORD')"
-export LANGUAGE=$(bashio::config 'LANGUAGE')
-export CRON_JOB=$(bashio::config 'CRON_JOB')
-export RENDERING_TIMEOUT=$(bashio::config 'RENDERING_TIMEOUT')
-export RENDERING_DELAY=$(bashio::config 'RENDERING_DELAY')
-export RENDERING_SCREEN_HEIGHT=$(bashio::config 'RENDERING_SCREEN_HEIGHT')
-export RENDERING_SCREEN_WIDTH=$(bashio::config 'RENDERING_SCREEN_WIDTH')
-export BROWSER_LAUNCH_TIMEOUT=$(bashio::config 'BROWSER_LAUNCH_TIMEOUT')
-export ROTATION=$(bashio::config 'ROTATION')
-export SCALING=$(bashio::config 'SCALING')
-export GRAYSCALE_DEPTH=$(bashio::config 'GRAYSCALE_DEPTH')
-export IMAGE_FORMAT=$(bashio::config 'IMAGE_FORMAT')
-export COLOR_MODE=$(bashio::config 'COLOR_MODE')
-export REMOVE_GAMMA=$(bashio::config 'REMOVE_GAMMA')
-export PREFERS_COLOR_SCHEME=$(bashio::config 'PREFERS_COLOR_SCHEME')
-export HA_BATTERY_WEBHOOK=$(bashio::config 'HA_BATTERY_WEBHOOK')
+export LANGUAGE="$(bashio::config 'LANGUAGE')"
+export CRON_JOB="$(bashio::config 'CRON_JOB')"
+export RENDERING_TIMEOUT="$(bashio::config 'RENDERING_TIMEOUT')"
+export RENDERING_DELAY="$(bashio::config 'RENDERING_DELAY')"
+export RENDERING_SCREEN_HEIGHT="$(bashio::config 'RENDERING_SCREEN_HEIGHT')"
+export RENDERING_SCREEN_WIDTH="$(bashio::config 'RENDERING_SCREEN_WIDTH')"
+export BROWSER_LAUNCH_TIMEOUT="$(bashio::config 'BROWSER_LAUNCH_TIMEOUT')"
+export BROWSER_CACHE_TTL_SECONDS="$(bashio::config 'BROWSER_CACHE_TTL_SECONDS')"
+export ROTATION="$(bashio::config 'ROTATION')"
+export SCALING="$(bashio::config 'SCALING')"
+export GRAYSCALE_DEPTH="$(bashio::config 'GRAYSCALE_DEPTH')"
+export IMAGE_FORMAT="$(bashio::config 'IMAGE_FORMAT')"
+export COLOR_MODE="$(bashio::config 'COLOR_MODE')"
+export REMOVE_GAMMA="$(bashio::config 'REMOVE_GAMMA')"
+export PREFERS_COLOR_SCHEME="$(bashio::config 'PREFERS_COLOR_SCHEME')"
+export HA_BATTERY_WEBHOOK="$(bashio::config 'HA_BATTERY_WEBHOOK')"
+export SATURATION="$(bashio::config 'SATURATION')"
+export CONTRAST="$(bashio::config 'CONTRAST')"
 
 bashio::log.info "Loading additional environment variables..."
 

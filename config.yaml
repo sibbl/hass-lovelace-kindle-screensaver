@@ -1,5 +1,5 @@
 name: Lovelace Kindle Screensaver
-version: 1.2.0
+version: 1.3.0
 slug: kindle-screensaver
 description: This tool can be used to display a Lovelace view of your Home Assistant instance on a jailbroken Kindle device. It regularly takes a screenshot which can be polled and used as a screensaver image of the online screensaver plugin.
 startup: application
@@ -8,41 +8,41 @@ arch:
   - aarch64
   - amd64
   - armv7
-url: 'https://github.com/sibbl/hass-lovelace-kindle-screensaver'
-image: 'sibbl/hass-lovelace-kindle-screensaver-ha-addon-{arch}'
-webui: 'http://[HOST]:[PORT:5000]'
+url: "https://github.com/sibbl/hass-lovelace-kindle-screensaver"
+image: "sibbl/hass-lovelace-kindle-screensaver-ha-addon-{arch}"
+webui: "http://[HOST]:[PORT:5000]"
 ingress: true
 ingress_port: 5000
 ports:
   5000/tcp: 5000
 ports_description:
-  5000/tcp: 'Node Webserver hosting rendered image'
+  5000/tcp: "Node Webserver hosting rendered image"
 map:
   - media:rw
-watchdog: 'http://[HOST]:[PORT:5000]/health'
+watchdog: "http://[HOST]:[PORT:5000]/health"
 init: false
 options:
-  HA_BASE_URL: 'https://your-path-to-home-assistant:8123'
-  HA_SCREENSHOT_URL: '/lovelace/0'
-  HA_ACCESS_TOKEN: ''
-  HTTP_AUTH_USER: ''
-  HTTP_AUTH_PASSWORD: ''
-  LANGUAGE: 'en'
-  CRON_JOB: '* * * * *'
-  RENDERING_TIMEOUT: '60000'
-  RENDERING_DELAY: '0'
-  RENDERING_SCREEN_HEIGHT: '800'
-  RENDERING_SCREEN_WIDTH: '600'
-  BROWSER_LAUNCH_TIMEOUT: '30000'
-  BROWSER_CACHE_TTL_SECONDS: '86400'
-  ROTATION: '0'
-  SCALING: '1'
-  GRAYSCALE_DEPTH: '8'
-  IMAGE_FORMAT: 'png'
-  COLOR_MODE: 'GrayScale'
+  HA_BASE_URL: "https://your-path-to-home-assistant:8123"
+  HA_SCREENSHOT_URL: "/lovelace/0"
+  HA_ACCESS_TOKEN: ""
+  HTTP_AUTH_USER: ""
+  HTTP_AUTH_PASSWORD: ""
+  LANGUAGE: "en"
+  CRON_JOB: "* * * * *"
+  RENDERING_TIMEOUT: "60000"
+  RENDERING_DELAY: "0"
+  RENDERING_SCREEN_HEIGHT: "800"
+  RENDERING_SCREEN_WIDTH: "600"
+  BROWSER_LAUNCH_TIMEOUT: "30000"
+  BROWSER_CACHE_TTL_SECONDS: "86400"
+  ROTATION: "0"
+  SCALING: "1"
+  GRAYSCALE_DEPTH: "8"
+  IMAGE_FORMAT: "png"
+  COLOR_MODE: "GrayScale"
   REMOVE_GAMMA: true
-  PREFERS_COLOR_SCHEME: 'light'
-  HA_BATTERY_WEBHOOK: ''
+  PREFERS_COLOR_SCHEME: "light"
+  HA_BATTERY_WEBHOOK: ""
   SATURATION: 1
   CONTRAST: 1
   ADDITIONAL_ENV_VARS: []
@@ -74,4 +74,4 @@ schema:
     - name: match(^[A-Z0-9_]+$)
       value: str
 environment:
-  output_path: "/output/cover"
+  OUTPUT_PATH: "/output/cover"

@@ -1,0 +1,20 @@
+title: Kindle E2E
+views:
+  - title: E2E
+    path: "0"
+    icon: mdi:tablet
+    cards:
+      - type: markdown
+        content: |
+          # Kindle rendering E2E
+
+          English · Deutsch · 한국어 · 日本語 · 中文 · 🏠
+
+          This dashboard is rendered by the reusable Docker end-to-end test.
+      - type: entities
+        title: Test entities
+        show_header_toggle: false
+        entities:
+          - entity: input_boolean.e2e_switch
+          - entity: input_number.e2e_temperature
+          - entity: sun.sun

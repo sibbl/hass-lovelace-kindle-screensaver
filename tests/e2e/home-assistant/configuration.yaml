@@ -1,0 +1,27 @@
+homeassistant:
+  name: Kindle E2E
+  latitude: 52.52
+  longitude: 13.405
+  elevation: 34
+  unit_system: metric
+  time_zone: Europe/Berlin
+  country: DE
+
+default_config:
+
+lovelace:
+  mode: yaml
+
+input_boolean:
+  e2e_switch:
+    name: Browser rendering works
+    icon: mdi:check-circle
+
+input_number:
+  e2e_temperature:
+    name: Temperature
+    initial: 21.5
+    min: -20
+    max: 50
+    step: 0.5
+    unit_of_measurement: °C

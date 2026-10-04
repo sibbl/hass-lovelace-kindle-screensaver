@@ -1,34 +1,44 @@
-ARG BUILD_FROM
-FROM ${BUILD_FROM} 
+ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.22-2025.11.1
+
+FROM node:22-alpine3.22 AS build
 
 WORKDIR /app
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    font-noto-emoji \
-    font-noto-cjk \
-    freetype-dev \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont \
-    imagemagick \
-    nodejs \
-    npm
-
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
-    USE_IMAGE_MAGICK=true
 
 COPY package*.json ./
-COPY local.conf /etc/fonts/local.conf
-COPY *.js ./
+COPY tsconfig*.json ./
 
 RUN npm ci
 
+COPY src ./src
 
-# Copy data for add-on
+RUN npm run build && npm prune --omit=dev
+
+FROM ${BUILD_FROM}
+
+WORKDIR /app
+
+RUN apk add --no-cache \
+    ca-certificates \
+    chromium \
+    font-noto-cjk \
+    font-noto-emoji \
+    freetype \
+    harfbuzz \
+    imagemagick \
+    nodejs \
+    npm \
+    nss \
+    ttf-freefont
+
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+    USE_IMAGE_MAGICK=true
+
+COPY local.conf /etc/fonts/local.conf
+COPY package.json ./
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
+
 COPY run.sh /
 RUN chmod a+x /run.sh
 
-CMD [ "/run.sh" ]
+CMD ["/run.sh"]

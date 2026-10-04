@@ -31,7 +31,7 @@ eink:
 
   ### Cards ###
   paper-card-background-color: "#ffffff"
-  
+
   ### Toggles ###
   # Modern toggle styles are handled by the component CSS
 
