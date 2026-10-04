@@ -123,3 +123,28 @@ describe("render coordinator", () => {
     expect(closeBrowser).toHaveBeenCalledWith("stuck render timeout");
   });
 });
+
+it("bounds a burst and accepts new work after the queue drains", async () => {
+  const deferred = createDeferred();
+  const coordinator = new RenderCoordinator({
+    renderJobTimeout: 1000,
+    ensureBrowser: async () => "browser",
+    closeBrowser: vi.fn(),
+    logger: { log: vi.fn(), error: vi.fn() }
+  });
+  const first = coordinator.run("active", () => deferred.promise);
+  const secondWork = vi.fn(async () => {});
+  const second = coordinator.run("waiting", secondWork);
+  const rejectedWork = vi.fn();
+  const burst = await Promise.all(Array.from({ length: 1000 }, () =>
+    coordinator.run("excess", rejectedWork, { resetBrowserCache: true })
+  ));
+  expect(burst.every(result => result.status === "failed" && result.error === "render_queue_full")).toBe(true);
+  expect(coordinator.pendingCount).toBe(2);
+  expect(rejectedWork).not.toHaveBeenCalled();
+  deferred.resolve();
+  await Promise.all([first, second]);
+  expect(secondWork).toHaveBeenCalledOnce();
+  expect(coordinator.hasWork()).toBe(false);
+  await expect(coordinator.run("recovered", async () => {})).resolves.toEqual({ status: "ok" });
+});

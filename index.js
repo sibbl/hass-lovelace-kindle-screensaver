@@ -9,6 +9,7 @@ const puppeteer = require("puppeteer");
 const { CronJob, CronTime } = require("cron");
 const gm = require("gm");
 const crypto = require("crypto");
+const { parseRequestRoute } = require("./request-routing");
 const { shouldReturnNotModified } = require("./http-cache");
 const {
   getHttpAuthForRequest,
@@ -207,11 +208,36 @@ async function getFileHash(filePath) {
     console.log("Basic auth enabled for HTTP server");
   }
 
-  const httpServer = http.createServer(async (request, response) => {
-    // Parse the request
-    const url = new URL(request.url, `http://${request.headers.host}`);
+  const httpServer = http.createServer((request, response) => {
+    handleRequest(request, response).catch((err) => {
+      console.error("HTTP request failed:", err);
+      if (response.headersSent) {
+        response.destroy();
+      } else {
+        response.writeHead(500);
+        response.end("Internal Server Error");
+      }
+    });
+  });
 
-    if (url.pathname === "/health") {
+  async function handleRequest(request, response) {
+    let url;
+    try {
+      // Routing does not depend on the untrusted Host header.
+      url = new URL(request.url, "http://localhost");
+    } catch {
+      response.writeHead(400);
+      response.end("Invalid request");
+      return;
+    }
+    const route = parseRequestRoute(url.pathname);
+    if (!route || (route.pageNumber && route.pageNumber > config.pages.length)) {
+      response.writeHead(400);
+      response.end("Invalid request");
+      return;
+    }
+
+    if (route.type === "health") {
       const now = Date.now();
       const age = lastSuccessfulRenderAt ? now - lastSuccessfulRenderAt : null;
       const startupAge = now - appStartedAt;
@@ -249,24 +275,14 @@ async function getFileHash(filePath) {
       return;
     }
 
-    if (url.pathname === "/render" || url.pathname.startsWith("/render/")) {
+    if (route.type === "render") {
       if (request.method !== "POST") {
         response.writeHead(405, { "Allow": "POST" });
         response.end("Method Not Allowed");
         return;
       }
 
-      const renderTarget = parseRenderTarget(url.pathname);
-      if (
-        renderTarget === null ||
-        renderTarget.pageNumber > config.pages.length
-      ) {
-        response.writeHead(400);
-        response.end("Invalid render target");
-        return;
-      }
-
-      const renderResult = await requestRender(renderTarget.pageNumber, {
+      const renderResult = await requestRender(route.pageNumber, {
         resetBrowserCache: hasTruthyFlag(url.searchParams, "clearCache")
       });
       writeJsonResponse(
@@ -277,7 +293,7 @@ async function getFileHash(filePath) {
       return;
     }
 
-    if (url.pathname === "/cache/clear") {
+    if (route.type === "cache") {
       if (request.method !== "POST") {
         response.writeHead(405, { "Allow": "POST" });
         response.end("Method Not Allowed");
@@ -293,29 +309,15 @@ async function getFileHash(filePath) {
       return;
     }
 
-    // Check the page number
-    const pageNumberStr = url.pathname;
-    // and get the battery level, if any
+    // Get the battery level, if any
     // (see https://github.com/sibbl/hass-lovelace-kindle-screensaver/README.md for patch to generate it on Kindle)
     const batteryLevel = parseInt(url.searchParams.get("batteryLevel"));
     const isCharging = url.searchParams.get("isCharging");
-    const pageNumber =
-      pageNumberStr === "/" ? 1 : parseInt(pageNumberStr.substr(1));
+    const pageNumber = route.pageNumber;
     const refreshRequested =
       hasTruthyFlag(url.searchParams, "refresh") ||
       hasTruthyFlag(url.searchParams, "forceRefresh");
     const cacheClearRequested = hasTruthyFlag(url.searchParams, "clearCache");
-    if (
-      isFinite(pageNumber) === false ||
-      pageNumber > config.pages.length ||
-      pageNumber < 1
-    ) {
-      console.log(`Invalid request: ${request.url} for page ${pageNumber}`);
-      response.writeHead(400);
-      response.end("Invalid request");
-      return;
-    }
-
     const pageIndex = pageNumber - 1;
     updateBatteryStore(pageIndex, pageNumber, batteryLevel, isCharging);
 
@@ -382,7 +384,7 @@ async function getFileHash(filePath) {
       response.writeHead(404, getOperationHeaders(renderResult, cacheClearResult));
       response.end("Image not found");
     }
-  });
+  }
 
   const port = config.port || 5000;
   httpServer.listen(port, () => {
@@ -632,24 +634,6 @@ function hasTruthyFlag(searchParams, name) {
 
   const value = String(searchParams.get(name) || "").toLowerCase();
   return !["0", "false", "no", "off"].includes(value);
-}
-
-function parseRenderTarget(pathname) {
-  if (pathname === "/render") {
-    return { pageNumber: null };
-  }
-
-  const match = pathname.match(/^\/render\/(\d+)$/);
-  if (!match) {
-    return null;
-  }
-
-  const pageNumber = parseInt(match[1], 10);
-  if (!Number.isFinite(pageNumber) || pageNumber < 1) {
-    return null;
-  }
-
-  return { pageNumber };
 }
 
 function getOperationHeaders(renderResult, cacheClearResult) {

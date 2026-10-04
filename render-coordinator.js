@@ -6,12 +6,14 @@ const {
 class RenderCoordinator {
   constructor({
     renderJobTimeout,
+    maxPendingJobs = 2,
     ensureBrowser,
     closeBrowser,
     onSuccess,
     logger = console
   }) {
     this.renderJobTimeout = renderJobTimeout;
+    this.maxPendingJobs = maxPendingJobs;
     this.ensureBrowser = ensureBrowser;
     this.closeBrowser = closeBrowser;
     this.onSuccess = onSuccess;
@@ -42,6 +44,12 @@ class RenderCoordinator {
         status: "skipped",
         reason: "render_in_progress"
       });
+    }
+
+    // Include the active job in the limit. Keep at most one waiting request
+    // by default so HTTP bursts cannot retain an unbounded promise/socket queue.
+    if (this.pendingCount >= this.maxPendingJobs) {
+      return Promise.resolve({ status: "failed", error: "render_queue_full" });
     }
 
     this.pendingCount++;

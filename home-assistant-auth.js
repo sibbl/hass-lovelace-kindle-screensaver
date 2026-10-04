@@ -15,6 +15,11 @@ async function createAuthenticatedContext(
   renderingTimeout,
   logger
 ) {
+  const baseUrl = new URL(pageConfig.baseUrl);
+  const expectedOrigin = baseUrl.origin;
+  if (!["http:", "https:"].includes(baseUrl.protocol)) {
+    throw new Error("Home Assistant base URL must use HTTP or HTTPS");
+  }
   const browserContext = await browser.createIncognitoBrowserContext();
   let page = null;
   let authenticationFailed = false;
@@ -34,7 +39,12 @@ async function createAuthenticatedContext(
 
     logger.log("Adding authentication entry to browser's local storage...");
     await page.evaluate(
-      (tokens, selectedLanguage, selectedTheme) => {
+      (tokens, selectedLanguage, selectedTheme, expectedOrigin) => {
+        // Check in the document that receives the token, including redirects
+        // or navigations that happened after goto completed.
+        if (window.location.origin !== expectedOrigin) {
+          throw new Error("Refusing to store Home Assistant token on a different origin");
+        }
         localStorage.setItem("hassTokens", tokens);
         localStorage.setItem("selectedLanguage", selectedLanguage);
         if (selectedTheme) {
@@ -43,7 +53,8 @@ async function createAuthenticatedContext(
       },
       JSON.stringify(hassTokens),
       JSON.stringify(pageConfig.language),
-      pageConfig.theme ? JSON.stringify(pageConfig.theme) : null
+      pageConfig.theme ? JSON.stringify(pageConfig.theme) : null,
+      expectedOrigin
     );
 
     return browserContext;

@@ -1,20 +1,18 @@
+const { parseRequestRoute } = require("./request-routing");
+
 const unauthorizedHeaders = {
   "WWW-Authenticate": 'Basic realm="hass-lovelace-kindle-screensaver"'
 };
 
-function getPageNumberForRequest(pathname) {
-  if (pathname === "/") return 1;
-
-  const match = pathname.match(/^\/(?:render\/)?([1-9]\d*)$/);
-  return match ? parseInt(match[1], 10) : 1;
-}
-
 function getHttpAuthForRequest(pathname, pages) {
-  const pageNumber = getPageNumberForRequest(pathname);
-  return pages[pageNumber - 1] || pages[0] || {};
+  const route = parseRequestRoute(pathname);
+  // Invalid routes must never fall back to a potentially public first page.
+  if (!route) return null;
+  return pages[(route.pageNumber || 1) - 1] || null;
 }
 
 function isHttpRequestAuthorized(authHeader, authConfig) {
+  if (!authConfig) return false;
   if (!authConfig.httpAuthUser || !authConfig.httpAuthPassword) return true;
   if (!authHeader || !authHeader.startsWith("Basic ")) return false;
 

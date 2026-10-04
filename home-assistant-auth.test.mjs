@@ -1,3 +1,4 @@
+import { runInNewContext } from "node:vm";
 import { createRequire } from "module";
 import { describe, expect, it, vi } from "vitest";
 
@@ -58,7 +59,8 @@ describe("Home Assistant browser authentication", () => {
         token_type: "Bearer"
       }),
       JSON.stringify("de"),
-      JSON.stringify({ theme: "eink" })
+      JSON.stringify({ theme: "eink" }),
+      "https://home.example.test"
     ]);
     expect(page.close).toHaveBeenCalledOnce();
   });
@@ -140,4 +142,39 @@ describe("Home Assistant browser authentication", () => {
     expect(failed.browserContext.close).toHaveBeenCalledOnce();
     expect(browser.createIncognitoBrowserContext).toHaveBeenCalledTimes(2);
   });
+});
+
+// Execute the actual injected callback: a page mock alone would miss token leaks.
+it.each(["https://evil.example.test", "http://home.example.test"])(
+  "never writes credentials after a redirect to %s", async (origin) => {
+    const { browserContext, page } = createBrowserContext();
+    const setItem = vi.fn();
+    page.evaluate.mockImplementation(async (callback, ...args) => {
+      runInNewContext(`(${callback.toString()})(...args)`, {
+        args, window: { location: { origin } }, localStorage: { setItem }
+      });
+    });
+    const browser = { createIncognitoBrowserContext: vi.fn(async () => browserContext) };
+    await expect(getAuthenticatedContext(browser, createPageConfig(), 1000, createLogger()))
+      .rejects.toThrow("different origin");
+    expect(setItem).not.toHaveBeenCalled();
+    expect(page.close).toHaveBeenCalledOnce();
+    expect(browserContext.close).toHaveBeenCalledOnce();
+  }
+);
+
+it("writes tokens on the configured origin", async () => {
+  const { browserContext, page } = createBrowserContext();
+  const setItem = vi.fn();
+  page.evaluate.mockImplementation(async (callback, ...args) => {
+    runInNewContext(`(${callback.toString()})(...args)`, {
+      args, window: { location: { origin: "https://home.example.test" } },
+      localStorage: { setItem }
+    });
+  });
+  await getAuthenticatedContext(
+    { createIncognitoBrowserContext: async () => browserContext },
+    createPageConfig(), 1000, createLogger()
+  );
+  expect(setItem).toHaveBeenCalledWith("hassTokens", expect.stringContaining('"access_token":"token"'));
 });
