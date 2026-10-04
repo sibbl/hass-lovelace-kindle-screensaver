@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.2.1
+
+### Fixed
+
+* Prevent page-specific HTTP Basic Auth bypasses through noncanonical image and render URLs
+* Keep malformed HTTP request URLs and Host headers from terminating the server
+* Bound the render and cache-clear queue to one active operation and one waiting operation to prevent resource exhaustion
+* Prevent Home Assistant access tokens from being stored after cross-origin login redirects
+
+### Compatibility
+
+* Use canonical numbered paths such as `/2` and `/render/2`; leading zeros and trailing characters are rejected
+* Retry render requests that return HTTP 503 with `render_queue_full`; image refresh requests continue serving the last good image
+* Set `HA_BASE_URL` to the final Home Assistant origin, including the correct scheme and port
+
 ## 1.2.0
 
 ### Added
