@@ -1,3 +1,4 @@
+import { parseRequestRoute } from "./request-routing";
 import type { ServerResponse } from "node:http";
 import type { PageConfig } from "../types";
 
@@ -7,30 +8,21 @@ const unauthorizedHeaders = {
   "WWW-Authenticate": 'Basic realm="hass-lovelace-kindle-screensaver"',
 };
 
-function getPageNumberForRequest(pathname: string): number {
-  if (pathname === "/") {
-    return 1;
-  }
-
-  const match = /^\/(?:render\/)?([1-9]\d*)$/.exec(pathname);
-  return match?.[1] ? Number.parseInt(match[1], 10) : 1;
-}
-
-export function getHttpAuthForRequest(pathname: string, pages: PageConfig[]): HttpAuthConfig {
-  const pageNumber = getPageNumberForRequest(pathname);
-  return (
-    pages[pageNumber - 1] ??
-    pages[0] ?? {
-      httpAuthUser: null,
-      httpAuthPassword: null,
-    }
-  );
+export function getHttpAuthForRequest(
+  pathname: string,
+  pages: PageConfig[],
+): HttpAuthConfig | null {
+  const route = parseRequestRoute(pathname);
+  if (!route) return null;
+  const pageNumber = "pageNumber" in route ? (route.pageNumber ?? 1) : 1;
+  return pages[pageNumber - 1] ?? null;
 }
 
 export function isHttpRequestAuthorized(
   authHeader: string | undefined,
-  authConfig: HttpAuthConfig,
+  authConfig: HttpAuthConfig | null,
 ): boolean {
+  if (!authConfig) return false;
   if (!authConfig.httpAuthUser || !authConfig.httpAuthPassword) {
     return true;
   }

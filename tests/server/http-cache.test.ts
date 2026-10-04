@@ -40,3 +40,17 @@ describe("HTTP cache validators", () => {
     ).toBe(false);
   });
 });
+
+it("gives a nonmatching ETag precedence over If-Modified-Since", () => {
+  expect(
+    shouldReturnNotModified(
+      { "if-none-match": '"old"', "if-modified-since": new Date(20000).toUTCString() },
+      '"new"',
+      10000,
+    ),
+  ).toBe(false);
+});
+
+it("accepts weak ETags for conditional image requests", () => {
+  expect(shouldReturnNotModified({ "if-none-match": 'W/"same"' }, '"same"', 10000)).toBe(true);
+});

@@ -15,7 +15,9 @@ function parseHttpDate(value: string | string[] | undefined): number | null {
 }
 
 function normalizeEtag(etag: string | undefined): string {
-  return String(etag || "").trim();
+  return String(etag || "")
+    .trim()
+    .replace(/^W\//, "");
 }
 
 function etagMatches(ifNoneMatch: string | string[] | undefined, etag: string): boolean {
@@ -36,8 +38,8 @@ export function shouldReturnNotModified(
   etag: string,
   modifiedTimeMs: number,
 ): boolean {
-  if (etagMatches(headers["if-none-match"], etag)) {
-    return true;
+  if (headers["if-none-match"] !== undefined) {
+    return etagMatches(headers["if-none-match"], etag);
   }
 
   const ifModifiedSince = parseHttpDate(headers["if-modified-since"]);

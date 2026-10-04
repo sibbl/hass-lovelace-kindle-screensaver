@@ -40,6 +40,8 @@ curl -v http://localhost:5000/2?refresh=1
 
 The response includes `X-Render-Status`. If rendering fails, the server keeps serving the previous image when one exists and returns `X-Render-Status: failed`.
 
+Render and cache-clear operations share a bounded queue (one active operation and one waiting). When full, API calls return HTTP `503` with `error: "render_queue_full"`; image refresh requests serve the last image with `X-Render-Status: failed` and `X-Render-Error: render_queue_full`. Retry later.
+
 For API clients, use `POST /render` to render all pages, `POST /render/2` to render one page, and `POST /cache/clear` to restart Chromium and clear browser-side frontend caches. Kindle-compatible image requests can combine cache clearing and rendering with `?clearCache=1&refresh=1`.
 
 ## Usage
@@ -92,9 +94,13 @@ Home Assistant related stuff:
 **\* Array** means that you can append `_2`, `_3`, ... `_n` for a numbered output page. Numbered variables fall back to the unnumbered value when omitted. For example, `ROTATION_2=180` only changes the second image; without it, the second image uses `ROTATION`.
 You can access these additional images by making GET Requests `http://localhost:5000/2`, `http://localhost:5000/3` etc.
 
+Image and numbered render paths must use canonical positive integers (for example `/2` and `/render/2`); leading zeros and trailing characters are rejected.
+
 Numbered HTTP Basic Auth credentials protect the corresponding image and render endpoint. For example, `HTTP_AUTH_USER_3` and `HTTP_AUTH_PASSWORD_3` apply to `/3` and `/render/3`. When omitted, that page inherits `HTTP_AUTH_USER` and `HTTP_AUTH_PASSWORD`; global operations such as `/render` and `/cache/clear` use the unnumbered credentials. The `/health` endpoint remains unauthenticated for container health checks.
 
 ### Multiple Home Assistant instances
+
+`HA_BASE_URL` must use HTTP or HTTPS and point to the final Home Assistant origin. Authentication storage is scoped to that exact origin, so cross-origin redirects and embedded frames do not receive the access token; update the configured URL if Home Assistant redirects to a different host, port, or scheme.
 
 The same numbered variables can point each output page at a different Home Assistant instance. Existing single-instance configurations require no changes. This two-instance Docker Compose configuration renders the first image at `/` and the second at `/2`:
 

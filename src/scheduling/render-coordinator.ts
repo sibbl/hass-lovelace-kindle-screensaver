@@ -9,6 +9,7 @@ import type {
 
 export interface RenderCoordinatorDependencies<TBrowser> {
   renderJobTimeout: number;
+  maxPendingJobs?: number;
   ensureBrowser(options: EnsureBrowserOptions): Promise<TBrowser>;
   closeBrowser(reason: string): Promise<void>;
   onSuccess?: () => void;
@@ -17,6 +18,7 @@ export interface RenderCoordinatorDependencies<TBrowser> {
 
 export class RenderCoordinator<TBrowser> {
   private readonly renderJobTimeout: number;
+  private readonly maxPendingJobs: number;
   private readonly ensureBrowser: (options: EnsureBrowserOptions) => Promise<TBrowser>;
   private readonly closeBrowser: (reason: string) => Promise<void>;
   private readonly onSuccess: (() => void) | undefined;
@@ -28,12 +30,14 @@ export class RenderCoordinator<TBrowser> {
 
   public constructor({
     renderJobTimeout,
+    maxPendingJobs = 2,
     ensureBrowser,
     closeBrowser,
     onSuccess,
     logger = console,
   }: RenderCoordinatorDependencies<TBrowser>) {
     this.renderJobTimeout = renderJobTimeout;
+    this.maxPendingJobs = maxPendingJobs;
     this.ensureBrowser = ensureBrowser;
     this.closeBrowser = closeBrowser;
     this.onSuccess = onSuccess;
@@ -62,6 +66,11 @@ export class RenderCoordinator<TBrowser> {
         status: "skipped",
         reason: "render_in_progress",
       });
+    }
+
+    // Include the active job: retain at most one waiting request by default.
+    if (this.pendingCount >= this.maxPendingJobs) {
+      return Promise.resolve({ status: "failed", error: "render_queue_full" });
     }
 
     this.pendingCount += 1;

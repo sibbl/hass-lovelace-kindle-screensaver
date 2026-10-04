@@ -212,4 +212,80 @@ describe("application HTTP server", () => {
     expect((await request(runningServer, "/render/2", { method: "POST" })).statusCode).toBe(400);
     expect((await request(runningServer, "/render/1")).statusCode).toBe(405);
   });
+  it.each([
+    "/02",
+    "/2anything",
+    "/2/extra",
+    "/2%00",
+    "/+2",
+    "/render/02",
+    "/render/2extra",
+    "/9007199254740992",
+  ])("rejects auth bypass path %s with a public first page", async (target) => {
+    config.pages.push(
+      createPageConfig({
+        outputPath: path.join(tempDirectory, "private"),
+        httpAuthUser: "private",
+        httpAuthPassword: "secret",
+      }),
+    );
+    await fs.writeFile(path.join(tempDirectory, "private.png"), "private-image");
+    const runningServer = await startServer();
+    const result = await request(runningServer, target, {
+      method: target.startsWith("/render") ? "POST" : "GET",
+    });
+    expect(result.statusCode).toBe(400);
+    expect(result.body.toString()).not.toContain("private-image");
+    expect(requestRender).not.toHaveBeenCalled();
+  });
+
+  it("survives malformed Host and URL input", async () => {
+    const runningServer = await startServer();
+    expect((await request(runningServer, "/health", { headers: { Host: "[" } })).statusCode).toBe(
+      200,
+    );
+    expect((await request(runningServer, "http://[")).statusCode).toBe(400);
+    expect((await request(runningServer, "/health")).statusCode).toBe(200);
+  });
+
+  it("contains unexpected asynchronous errors and keeps serving", async () => {
+    requestRender = vi.fn(async () => {
+      throw new Error("unexpected render failure");
+    });
+    const runningServer = await startServer();
+    expect((await request(runningServer, "/render", { method: "POST" })).statusCode).toBe(500);
+    expect((await request(runningServer, "/health")).statusCode).toBe(200);
+  });
+
+  it("returns backpressure for API requests and the previous image for refresh requests", async () => {
+    requestRender = vi.fn(async (): Promise<RenderResult> => ({
+      status: "failed",
+      error: "render_queue_full",
+    }));
+    await fs.writeFile(path.join(tempDirectory, "cover.png"), "last-good-image");
+    const runningServer = await startServer();
+    const api = await request(runningServer, "/render", { method: "POST" });
+    expect(api.statusCode).toBe(503);
+    expect(JSON.parse(api.body.toString())).toEqual({
+      status: "failed",
+      error: "render_queue_full",
+    });
+    const image = await request(runningServer, "/?refresh=1", {
+      headers: { "If-None-Match": "*" },
+    });
+    expect(image.statusCode).toBe(200);
+    expect(image.body.toString()).toBe("last-good-image");
+    expect(image.headers["x-render-error"]).toBe("render_queue_full");
+  });
+
+  it("can serve fallback images when render errors contain Unicode and control characters", async () => {
+    requestRender = vi.fn(async (): Promise<RenderResult> => ({
+      status: "failed",
+      error: "failed 💥\u0000",
+    }));
+    await fs.writeFile(path.join(tempDirectory, "cover.png"), "last-good-image");
+    const result = await request(await startServer(), "/?refresh=1");
+    expect(result.statusCode).toBe(200);
+    expect(result.body.toString()).toBe("last-good-image");
+  });
 });

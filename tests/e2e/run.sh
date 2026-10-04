@@ -135,6 +135,13 @@ assert_http_status 401 "${app_url}/2" --user "${http_auth_user}:${http_auth_pass
 assert_http_status 200 "${app_url}/2" \
   --user "${numbered_http_auth_user}:${numbered_http_auth_password}"
 
+echo "Checking canonical routes and malformed Host handling..."
+for target in /02 /2extra /2/extra /render/02; do
+  assert_http_status 400 "${app_url}${target}" --user "${http_auth_user}:${http_auth_password}"
+done
+assert_http_status 200 "${app_url}/health" --header 'Host: ['
+compose exec --no-TTY app node --input-type=module < tests/e2e/browser-origin-isolation.mjs
+
 echo "Checking rendered image properties and runtime fonts..."
 image_properties="$(
   compose exec --no-TTY app \
@@ -282,5 +289,10 @@ if [[ "${addon_numbered_render_response}" != '{"status":"ok"}' ]]; then
   echo "Unexpected numbered add-on render response: ${addon_numbered_render_response}" >&2
   exit 1
 fi
+
+for target in /02 /2extra /2/extra /render/02; do
+  assert_http_status 400 "${addon_url}${target}" --user "${http_auth_user}:${http_auth_password}"
+done
+compose exec --no-TTY app-addon node --input-type=module < tests/e2e/browser-origin-isolation.mjs
 
 echo "E2E passed: Home Assistant 2026.7.3, two authenticated standalone and add-on renders"

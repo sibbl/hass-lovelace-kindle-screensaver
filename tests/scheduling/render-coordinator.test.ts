@@ -146,3 +146,28 @@ describe("render coordinator", () => {
     });
   });
 });
+
+it("bounds a burst of render requests and recovers after draining", async () => {
+  const deferred = createDeferred();
+  const coordinator = createCoordinator();
+  const first = coordinator.run("active", () => deferred.promise);
+  const secondWork = vi.fn(async () => undefined);
+  const second = coordinator.run("waiting", secondWork);
+  const rejectedWork = vi.fn(async () => undefined);
+  const results = await Promise.all(
+    Array.from({ length: 1000 }, () =>
+      coordinator.run("excess", rejectedWork, { resetBrowserCache: true }),
+    ),
+  );
+  expect(
+    results.every((result) => result.status === "failed" && result.error === "render_queue_full"),
+  ).toBe(true);
+  expect(rejectedWork).not.toHaveBeenCalled();
+  deferred.resolve();
+  await Promise.all([first, second]);
+  expect(secondWork).toHaveBeenCalledOnce();
+  expect(coordinator.hasWork()).toBe(false);
+  await expect(coordinator.run("recovered", async () => undefined)).resolves.toEqual({
+    status: "ok",
+  });
+});

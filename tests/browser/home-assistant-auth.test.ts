@@ -45,16 +45,31 @@ describe("Home Assistant browser authentication", () => {
     await expect(auth.getAuthenticatedContext(mocks.browser, pageConfig)).resolves.toBe(
       mocks.browserContext,
     );
-    expect(mocks.createContext).toHaveBeenCalledWith({ locale: "de", viewport: null });
-    expect(mocks.addInitScript).toHaveBeenCalledWith(expect.any(Function), {
-      tokens: JSON.stringify({
-        hassUrl: "https://home.example.test",
-        access_token: "secret-token",
-        token_type: "Bearer",
-      }),
-      selectedLanguage: JSON.stringify("de"),
-      selectedTheme: JSON.stringify({ theme: "eink" }),
+    expect(mocks.createContext).toHaveBeenCalledWith({
+      locale: "de",
+      viewport: null,
+      storageState: {
+        cookies: [],
+        origins: [
+          {
+            origin: "https://home.example.test",
+            localStorage: [
+              {
+                name: "hassTokens",
+                value: JSON.stringify({
+                  hassUrl: "https://home.example.test",
+                  access_token: "secret-token",
+                  token_type: "Bearer",
+                }),
+              },
+              { name: "selectedLanguage", value: JSON.stringify("de") },
+              { name: "selectedTheme", value: JSON.stringify({ theme: "eink" }) },
+            ],
+          },
+        ],
+      },
     });
+    expect(mocks.addInitScript).not.toHaveBeenCalled();
   });
 
   it("reuses one context for matching instance settings", async () => {
@@ -74,12 +89,15 @@ describe("Home Assistant browser authentication", () => {
       finishInitialization = resolve;
     });
     const mocks = createBrowserMocks();
-    mocks.addInitScript.mockReturnValueOnce(initialization);
+    mocks.createContext.mockImplementationOnce(async () => {
+      await initialization;
+      return mocks.browserContext;
+    });
     const auth = new HomeAssistantAuth({ log: vi.fn(), error: vi.fn() });
 
     const first = auth.getAuthenticatedContext(mocks.browser, createPageConfig());
     const second = auth.getAuthenticatedContext(mocks.browser, createPageConfig());
-    await vi.waitFor(() => expect(mocks.addInitScript).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(mocks.createContext).toHaveBeenCalledOnce());
 
     finishInitialization?.();
     await expect(Promise.all([first, second])).resolves.toEqual([
@@ -116,12 +134,10 @@ describe("Home Assistant browser authentication", () => {
   });
 
   it("discards failed contexts so the next render can retry", async () => {
-    const failed = createBrowserMocks();
-    failed.addInitScript.mockRejectedValueOnce(new Error("context initialization failed"));
     const recovered = createBrowserMocks();
     const createContext = vi
       .fn()
-      .mockResolvedValueOnce(failed.browserContext)
+      .mockRejectedValueOnce(new Error("context initialization failed"))
       .mockResolvedValueOnce(recovered.browserContext);
     const browser = {
       newContext: createContext,
@@ -135,6 +151,36 @@ describe("Home Assistant browser authentication", () => {
     await expect(auth.getAuthenticatedContext(browser, config)).resolves.toBe(
       recovered.browserContext,
     );
-    expect(failed.closeContext).toHaveBeenCalledOnce();
+    expect(createContext).toHaveBeenCalledTimes(2);
   });
+});
+
+it.each(["file:///tmp/ha", "data:text/html,ha"])(
+  "rejects non-HTTP origin %s before creating a context",
+  async (baseUrl) => {
+    const mocks = createBrowserMocks();
+    const auth = new HomeAssistantAuth({ log: vi.fn(), error: vi.fn() });
+    await expect(
+      auth.getAuthenticatedContext(mocks.browser, createPageConfig({ baseUrl })),
+    ).rejects.toThrow("HTTP or HTTPS");
+    expect(mocks.createContext).not.toHaveBeenCalled();
+  },
+);
+
+it("scopes storage to the exact origin including scheme and port, without navigation scripts", async () => {
+  const mocks = createBrowserMocks();
+  const auth = new HomeAssistantAuth({ log: vi.fn(), error: vi.fn() });
+  await auth.getAuthenticatedContext(
+    mocks.browser,
+    createPageConfig({ baseUrl: "https://home.example.test:8123/ha" }),
+  );
+  expect(mocks.createContext).toHaveBeenCalledWith(
+    expect.objectContaining({
+      storageState: {
+        cookies: [],
+        origins: [{ origin: "https://home.example.test:8123", localStorage: expect.any(Array) }],
+      },
+    }),
+  );
+  expect(mocks.addInitScript).not.toHaveBeenCalled();
 });

@@ -16,7 +16,19 @@
 
 ### Fixed
 
-- Seed Home Assistant authentication storage before the first navigation to avoid an initial unauthenticated request
+- Seed Home Assistant authentication storage only for the configured origin before the first navigation; never inject credentials into foreign pages or frames
+- Preserve all 1.2.1 security fixes in the TypeScript HTTP server and render coordinator
+- Honor ETag precedence over modification dates to avoid serving stale cached images
+- Sanitize Unicode and control characters in render error headers so the last good image remains available
+
+## 1.2.1
+
+### Fixed
+
+- Prevent page-specific HTTP Basic Auth bypasses through noncanonical image and render URLs
+- Keep malformed HTTP request URLs and Host headers from terminating the server
+- Bound the render and cache-clear queue to one active operation and one waiting operation
+- Prevent Home Assistant access tokens from being stored on foreign origins
 
 ## 1.2.0
 

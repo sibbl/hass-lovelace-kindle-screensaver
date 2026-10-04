@@ -11,6 +11,8 @@ describe("request helpers", () => {
     expect(parseRenderTarget("/render")).toEqual({ pageNumber: null });
     expect(parseRenderTarget("/render/2")).toEqual({ pageNumber: 2 });
     expect(parseRenderTarget("/render/0")).toBeNull();
+    expect(parseRenderTarget("/render/02")).toBeNull();
+    expect(parseRenderTarget("/render/9007199254740992")).toBeNull();
     expect(parseRenderTarget("/render/not-a-page")).toBeNull();
   });
 

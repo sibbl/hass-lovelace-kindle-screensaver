@@ -1,3 +1,4 @@
+import { parseRequestRoute } from "./request-routing";
 import type { OutgoingHttpHeaders, ServerResponse } from "node:http";
 import type { RenderResult } from "../types";
 
@@ -15,22 +16,8 @@ export function hasTruthyFlag(searchParams: URLSearchParams, name: string): bool
 }
 
 export function parseRenderTarget(pathname: string): RenderTarget | null {
-  if (pathname === "/render") {
-    return { pageNumber: null };
-  }
-
-  const match = pathname.match(/^\/render\/(\d+)$/);
-  const pageNumberValue = match?.[1];
-  if (!pageNumberValue) {
-    return null;
-  }
-
-  const pageNumber = Number.parseInt(pageNumberValue, 10);
-  if (!Number.isFinite(pageNumber) || pageNumber < 1) {
-    return null;
-  }
-
-  return { pageNumber };
+  const route = parseRequestRoute(pathname);
+  return route?.type === "render" ? { pageNumber: route.pageNumber } : null;
 }
 
 export function getOperationHeaders(
@@ -58,7 +45,7 @@ export function getOperationHeaders(
 
 export function sanitizeHeaderValue(value: unknown): string {
   return String(value)
-    .replace(/[\r\n]/g, " ")
+    .replace(/[^\x20-\x7e]/g, " ")
     .slice(0, 256);
 }
 

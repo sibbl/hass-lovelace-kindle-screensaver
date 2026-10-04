@@ -1,3 +1,4 @@
+import { parseRequestRoute } from "./request-routing";
 import crypto from "node:crypto";
 import { promises as fs } from "node:fs";
 import http, {
@@ -15,12 +16,7 @@ import {
   isHttpRequestAuthorized,
   writeUnauthorizedResponse,
 } from "./http-auth";
-import {
-  getOperationHeaders,
-  hasTruthyFlag,
-  parseRenderTarget,
-  writeJsonResponse,
-} from "./request-helpers";
+import { getOperationHeaders, hasTruthyFlag, writeJsonResponse } from "./request-helpers";
 
 export interface HttpServerDependencies {
   config: AppConfig;
@@ -60,10 +56,12 @@ export class ApplicationHttpServer {
     this.server = http.createServer((request, response) => {
       void this.handleRequest(request, response).catch((error: unknown) => {
         this.logger.error("HTTP request failed:", error);
-        if (!response.headersSent) {
+        if (response.headersSent) {
+          response.destroy();
+        } else {
           response.writeHead(500);
+          response.end("Internal Server Error");
         }
-        response.end("Internal Server Error");
       });
     });
     this.server.listen(this.dependencies.config.port, () => {
@@ -73,9 +71,27 @@ export class ApplicationHttpServer {
   }
 
   private async handleRequest(request: IncomingMessage, response: ServerResponse): Promise<void> {
-    const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
+    let url: URL;
+    try {
+      url = new URL(request.url ?? "/", "http://localhost");
+    } catch {
+      response.writeHead(400);
+      response.end("Invalid request");
+      return;
+    }
+    const route = parseRequestRoute(url.pathname);
+    if (
+      !route ||
+      ("pageNumber" in route &&
+        route.pageNumber !== null &&
+        route.pageNumber > this.dependencies.config.pages.length)
+    ) {
+      response.writeHead(400);
+      response.end("Invalid request");
+      return;
+    }
 
-    if (url.pathname === "/health") {
+    if (route.type === "health") {
       this.writeHealthResponse(response);
       return;
     }
@@ -84,17 +100,18 @@ export class ApplicationHttpServer {
       return;
     }
 
-    if (url.pathname === "/render" || url.pathname.startsWith("/render/")) {
-      await this.handleRenderRequest(request, response, url);
+    if (route.type === "render") {
+      await this.handleRenderRequest(request, response, url, route.pageNumber);
       return;
     }
 
-    if (url.pathname === "/cache/clear") {
+    if (route.type === "cache") {
       await this.handleCacheClearRequest(request, response);
       return;
     }
 
-    await this.handleImageRequest(request, response, url);
+    if (route.type === "image")
+      await this.handleImageRequest(request, response, url, route.pageNumber);
   }
 
   private writeHealthResponse(response: ServerResponse): void {
@@ -143,6 +160,7 @@ export class ApplicationHttpServer {
     request: IncomingMessage,
     response: ServerResponse,
     url: URL,
+    pageNumber: number | null,
   ): Promise<void> {
     if (request.method !== "POST") {
       response.writeHead(405, { Allow: "POST" });
@@ -150,18 +168,7 @@ export class ApplicationHttpServer {
       return;
     }
 
-    const renderTarget = parseRenderTarget(url.pathname);
-    if (
-      !renderTarget ||
-      (renderTarget.pageNumber !== null &&
-        renderTarget.pageNumber > this.dependencies.config.pages.length)
-    ) {
-      response.writeHead(400);
-      response.end("Invalid render target");
-      return;
-    }
-
-    const renderResult = await this.dependencies.requestRender(renderTarget.pageNumber, {
+    const renderResult = await this.dependencies.requestRender(pageNumber, {
       resetBrowserCache: hasTruthyFlag(url.searchParams, "clearCache"),
     });
     writeJsonResponse(response, renderResult.status === "ok" ? 200 : 503, renderResult);
@@ -185,24 +192,13 @@ export class ApplicationHttpServer {
     request: IncomingMessage,
     response: ServerResponse,
     url: URL,
+    pageNumber: number,
   ): Promise<void> {
     const batteryLevel = Number.parseInt(url.searchParams.get("batteryLevel") ?? "", 10);
     const isCharging = url.searchParams.get("isCharging");
-    const pageNumber = url.pathname === "/" ? 1 : Number.parseInt(url.pathname.substring(1), 10);
     const refreshRequested =
       hasTruthyFlag(url.searchParams, "refresh") || hasTruthyFlag(url.searchParams, "forceRefresh");
     const cacheClearRequested = hasTruthyFlag(url.searchParams, "clearCache");
-
-    if (
-      !Number.isFinite(pageNumber) ||
-      pageNumber > this.dependencies.config.pages.length ||
-      pageNumber < 1
-    ) {
-      this.logger.log(`Invalid request: ${request.url ?? ""} for page ${pageNumber}`);
-      response.writeHead(400);
-      response.end("Invalid request");
-      return;
-    }
 
     const pageIndex = pageNumber - 1;
     this.dependencies.batteryManager.update(pageIndex, pageNumber, batteryLevel, isCharging);

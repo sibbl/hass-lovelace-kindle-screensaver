@@ -50,38 +50,32 @@ export class HomeAssistantAuth {
     browser: Browser,
     pageConfig: PageConfig,
   ): Promise<BrowserContext> {
-    const browserContext = await browser.newContext({
+    const baseUrl = new URL(pageConfig.baseUrl);
+    if (!["http:", "https:"].includes(baseUrl.protocol)) {
+      throw new Error("Home Assistant base URL must use HTTP or HTTPS");
+    }
+    const localStorage = [
+      {
+        name: "hassTokens",
+        value: JSON.stringify({
+          hassUrl: pageConfig.baseUrl,
+          access_token: pageConfig.accessToken,
+          token_type: "Bearer",
+        }),
+      },
+      { name: "selectedLanguage", value: JSON.stringify(pageConfig.language) },
+    ];
+    if (pageConfig.theme) {
+      localStorage.push({ name: "selectedTheme", value: JSON.stringify(pageConfig.theme) });
+    }
+
+    this.logger.log("Adding origin-scoped Home Assistant authentication...");
+    // Init scripts run in every page and child frame, including foreign origins.
+    // Seed only HA's origin instead, so redirects and embeds never get the token.
+    return browser.newContext({
       locale: pageConfig.language,
       viewport: null,
+      storageState: { cookies: [], origins: [{ origin: baseUrl.origin, localStorage }] },
     });
-
-    try {
-      const hassTokens = {
-        hassUrl: pageConfig.baseUrl,
-        access_token: pageConfig.accessToken,
-        token_type: "Bearer",
-      };
-
-      this.logger.log("Adding authentication entry to browser's local storage...");
-      await browserContext.addInitScript(
-        ({ tokens, selectedLanguage, selectedTheme }) => {
-          localStorage.setItem("hassTokens", tokens);
-          localStorage.setItem("selectedLanguage", selectedLanguage);
-          if (selectedTheme) {
-            localStorage.setItem("selectedTheme", selectedTheme);
-          }
-        },
-        {
-          tokens: JSON.stringify(hassTokens),
-          selectedLanguage: JSON.stringify(pageConfig.language),
-          selectedTheme: pageConfig.theme ? JSON.stringify(pageConfig.theme) : null,
-        },
-      );
-
-      return browserContext;
-    } catch (error: unknown) {
-      await browserContext.close().catch(() => undefined);
-      throw error;
-    }
   }
 }
